@@ -9,7 +9,9 @@ const useWebcam = () => {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play();
+          };
         }
       } catch (err) {
         console.error('Error accessing webcam:', err);
