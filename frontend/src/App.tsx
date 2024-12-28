@@ -6,15 +6,19 @@ import './App.css'
 
 function App() {
   const videoRef = useWebcam();
-  useGestureDetection(videoRef);
+  const canvasRef = useGestureDetection(videoRef);
 
   return (
     <>
       <div className="text-3xl font-bold text-black-500 mb-5">GestureDocs</div>
-      <TextEditor />
-      <div className="w-60 fixed bottom-10 right-10">
-        <video ref={videoRef} />
+      <div className="mb-5">
+        <TextEditor/>
       </div>
+      <div className="relative w-[320px] h-[240px] flex justify-center items-center mx-auto my-auto">
+        <video ref={videoRef} className="absolute top-0 left-0 w-full h-full"/>
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+      </div>
+      
     </>
   )
 }

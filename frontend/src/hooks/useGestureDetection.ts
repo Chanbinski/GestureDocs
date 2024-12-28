@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
-import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+import { useEffect, useRef } from 'react';
+import { FaceLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision';
 
 const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   useEffect(() => {
     let faceLandmarker: FaceLandmarker;
 
@@ -22,31 +24,98 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>) => {
 
       detectGestures();
     };
+    
 
-    const detectGestures = async () => {
-      if (!videoRef.current) return;
+    // Issue regarding DrawingUtils https://github.com/google-ai-edge/mediapipe/issues/5790
+    const detectGestures = () => {
+        if (!videoRef.current || !canvasRef.current) return;
 
-      const video = videoRef.current;
+        const video = videoRef.current;
 
-      const detect = () => {
-        const results = faceLandmarker.detectForVideo(video, performance.now());
-        
-        if(results.faceLandmarks) {
-            //console.log(results.faceLandmarks);
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          console.error("Video dimensions are zero. Ensure the webcam feed is loaded.");
+          return;
         }
- 
-        requestAnimationFrame(detect);
-      };
+
+        const canvas = canvasRef.current;
+        const canvasCtx = canvas.getContext("2d");
+
+        if (!canvasCtx) return;
+
+        const drawingUtils = new DrawingUtils(canvasCtx);
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const detect = () => {
+          const results = faceLandmarker.detectForVideo(video, performance.now());
+
+          // Clear canvas
+          canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+          console.log(canvas.width, canvas.height);
+
+          console.log(results.faceLandmarks);
+
+          if (results.faceLandmarks) {
+            for (const landmarks of results.faceLandmarks) {
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+                { color: "#C0C0C070", lineWidth: 1 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
+                { color: "#30FF30" }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
+                { color: "#FF3030" }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,
+                { color: "#FF3030", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
+                { color: "#FF3030", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_LIPS,
+                { color: "#FF3030", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
+                { color: "#FF3030", lineWidth: 2 }
+              );
+            }
+          }
+          requestAnimationFrame(detect);
+        };
 
       detect();
     };
 
     initFaceLandmarker();
-
-    return () => {
-      if (faceLandmarker) faceLandmarker.close();
-    };
   }, [videoRef]);
+
+  return canvasRef;
 };
 
 export default useGestureDetection;
