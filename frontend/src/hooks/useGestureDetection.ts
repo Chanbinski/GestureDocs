@@ -36,6 +36,7 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
 
         if (video.videoWidth === 0 || video.videoHeight === 0) {
           console.error("Video dimensions are zero. Ensure the webcam feed is loaded.");
+          requestAnimationFrame(detectGestures);
           return;
         }
 
@@ -50,6 +51,7 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
         canvas.height = video.videoHeight;
 
         const previousNoseX = { value: null as number | null };
+        let lastDirection = null as string | null;
 
         const detect = () => {
           const results = faceLandmarker.detectForVideo(video, performance.now());
@@ -67,13 +69,30 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
 
           // Detect Head Shake
           const noseX = landmarks ? landmarks[1].x : 0; // Nose tip
-          const shakeThreshold = 0.025; // Adjust based on sensitivity
+          const shakeThreshold = 0.02; // Adjust based on sensitivity
 
           let headShake = false;
           if (previousNoseX.value !== null) {
-            const movement = Math.abs(noseX - previousNoseX.value);
-            headShake = movement > shakeThreshold;
+            const movement = noseX - previousNoseX.value; // Calculate movement
+            if (movement > shakeThreshold) {
+              // Movement to the right
+              if (lastDirection === "left") {
+                headShake = true; // Complete shake detected (left → right)
+                lastDirection = null; // Reset direction
+              } else {
+                lastDirection = "right"; // Update direction
+              }
+            } else if (movement < -shakeThreshold) {
+              // Movement to the left
+              if (lastDirection === "right") {
+                headShake = true; // Complete shake detected (right → left)
+                lastDirection = null; // Reset direction
+              } else {
+                lastDirection = "left"; // Update direction
+              }
+            }
           }
+          
           previousNoseX.value = noseX;
 
           setGestures([headTiltLeft, headTiltRight, headShake]);

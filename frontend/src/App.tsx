@@ -14,7 +14,7 @@ function App() {
     <>
       <div className="text-3xl font-bold text-black-500 mb-5">GestureDocs</div>
       <div className="mb-14">
-        <TextEditor/>
+        <TextEditor gestures={gestures}/>
       </div>
       <div className="flex flex-col justify-center items-center gap-3">
         <button
