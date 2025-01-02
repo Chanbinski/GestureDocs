@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaceLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision';
+import { FaceLandmarker, FilesetResolver, DrawingUtils, FaceLandmarkerResult } from '@mediapipe/tasks-vision';
 
 const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMesh: Boolean) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Gesture indicators: [headTiltLeft, headTiltRight, headShake]
-  const [gestures, setGestures] = useState([false, false, false]);
+  const gesturesRef = useRef({
+    tiltLeft: false,
+    tiltRight: false,
+    shake: false
+  });
+  const [gestures, setGestures] = useState(gesturesRef.current); // For rendering purpose
 
   useEffect(() => {
     let faceLandmarker: FaceLandmarker;
@@ -26,8 +31,6 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
 
       detectGestures();
     };
-    
-
     // Issue regarding DrawingUtils https://github.com/google-ai-edge/mediapipe/issues/5790
     const detectGestures = () => {
         if (!videoRef.current || !canvasRef.current) return;
@@ -50,12 +53,67 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
+        const showLandmarks = (results: FaceLandmarkerResult) => {
+          if (results.faceLandmarks) {
+            for (const landmarks of results.faceLandmarks) {
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+                { color: "#C0C0C070", lineWidth: 1 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_LIPS,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+              drawingUtils.drawConnectors(
+                landmarks,
+                FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
+                { color: "#30FF30", lineWidth: 2 }
+              );
+            }
+          }
+        }
+
         const previousNoseX = { value: null as number | null };
         let lastDirection = null as string | null;
+
 
         const detect = () => {
           const results = faceLandmarker.detectForVideo(video, performance.now());
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+          if (showMesh) showLandmarks(results);
 
           const landmarks = results.faceLandmarks[0];
 
@@ -64,8 +122,8 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
           const rightEyeY = landmarks ? landmarks[386].y : 0; // Right eye
           const tiltThreshold = 0.03; // Adjust based on sensitivity
 
-          const headTiltLeft = leftEyeY - rightEyeY > tiltThreshold
-          const headTiltRight = rightEyeY - leftEyeY > tiltThreshold;
+          let headTiltLeft = leftEyeY - rightEyeY > tiltThreshold
+          let headTiltRight = rightEyeY - leftEyeY > tiltThreshold;
 
           // Detect Head Shake
           const noseX = landmarks ? landmarks[1].x : 0; // Nose tip
@@ -91,64 +149,22 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
                 lastDirection = "left"; // Update direction
               }
             }
-          }
+          } 
           
           previousNoseX.value = noseX;
 
-          setGestures([headTiltLeft, headTiltRight, headShake]);
-
-          // Draw Face Landmarks
-          if (showMesh) {
-            if (results.faceLandmarks) {
-              for (const landmarks of results.faceLandmarks) {
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-                  { color: "#C0C0C070", lineWidth: 1 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
-                  { color: "#30FF30", lineWidth: 2 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,
-                  { color: "#30FF30", lineWidth: 2 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
-                  { color: "#30FF30", lineWidth: 2 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,
-                  { color: "#30FF30", lineWidth: 2 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
-                  { color: "#30FF30", lineWidth: 2 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_LIPS,
-                  { color: "#30FF30", lineWidth: 2 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
-                  { color: "#30FF30", lineWidth: 2 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
-                  { color: "#30FF30", lineWidth: 2 }
-                );
-              }
-            }
+          const newGestures = {
+            tiltLeft: headTiltLeft, 
+            tiltRight: headTiltRight, 
+            shake: headShake
           }
+
+          if (JSON.stringify(newGestures) !== JSON.stringify(gesturesRef.current)) {
+              gesturesRef.current = newGestures;
+              setGestures(newGestures);
+              console.log(gesturesRef);
+          }
+
           requestAnimationFrame(detect);
         };
 
@@ -158,7 +174,7 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
     initFaceLandmarker();
   }, [videoRef, showMesh]);
 
-  return [canvasRef, gestures] as const;
+  return [canvasRef, gesturesRef.current] as const;
 };
 
 export default useGestureDetection;

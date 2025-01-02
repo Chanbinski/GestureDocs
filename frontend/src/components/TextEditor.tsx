@@ -2,17 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
+interface GestureFeatures {
+  tiltLeft: boolean;
+  tiltRight: boolean;
+  shake: boolean;
+}
+
 interface TextEditorProps {
-  gestures: boolean[]; // Array to represent head gestures
+  gestures: GestureFeatures;
 }
 
 const TextEditor: React.FC<TextEditorProps> = ({ gestures }) => {
   const [value, setValue] = useState('');
   const quillRef = useRef<any>(null); // Ref to ReactQuill instance
-
   useEffect(() => {
-    const isHeadTilted = gestures[0] || gestures[1]; // Head Tilt Left or Right
-    const isHeadShake = gestures[2]; // Head Shake
+    //console.log(gestures);
+    const isHeadTilted = gestures.tiltLeft || gestures.tiltRight // Head Tilt Left or Right
+    const isHeadShake = gestures.shake; // Head Shake
 
     if (quillRef.current) {
       const quill = quillRef.current.getEditor(); // Access Quill instance

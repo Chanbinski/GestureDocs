@@ -29,13 +29,13 @@ function App() {
         </div>
 
         <div className="flex flex-row grow gap-5">
-          <div className={`text-center px-4 py-2 rounded ${gestures[0] ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}`}>
+          <div className={`text-center px-4 py-2 rounded ${gestures.tiltLeft ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}`}>
             Tilt L
           </div>
-          <div className={`text-center px-4 py-2 rounded ${gestures[1] ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}`}>
+          <div className={`text-center px-4 py-2 rounded ${gestures.tiltRight ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}`}>
             Tilt R
           </div>
-          <div className={`text-center px-4 py-2 rounded ${gestures[2] ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}`}>
+          <div className={`text-center px-4 py-2 rounded ${gestures.shake ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}`}>
             Shake
           </div>
         </div>
