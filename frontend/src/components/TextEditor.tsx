@@ -1,14 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import './TextEditor.css';
+import Quill from 'quill';
 
-interface GestureFeatures {
+// Register custom font sizes with Quill
+const Size = Quill.import('attributors/style/size');
+Size.whitelist = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '18pt', '24pt', '30pt', '36pt', '48pt', '60pt'];
+Quill.register(Size, true);
+
+type GestureFeatures = {
   tiltLeft: boolean;
   tiltRight: boolean;
   shake: boolean;
 }
 
-interface TextEditorProps {
+type TextEditorProps = {
   gestures: GestureFeatures;
 }
 
@@ -47,9 +54,49 @@ const TextEditor: React.FC<TextEditorProps> = ({ gestures }) => {
     }
   }, [gestures]); // Re-run whenever gestures change
 
+  // Add toolbar configuration
+  const modules = {
+    toolbar: [
+      [{ 'size': Size.whitelist }],  // Use the registered sizes
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['clean']
+    ]
+  };
+
+  const formats = [
+    'size',
+    'bold', 'italic', 'underline', 'strike',
+    'color', 'background',
+    'list', 'bullet'
+  ];
+
+  useEffect(() => {
+    // Set default size on mount
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      editor.format('size', '11pt'); // Google Docs default size
+      
+      const sizePickerLabel = document.querySelector('.ql-size .ql-picker-label');
+      if (sizePickerLabel) {
+        sizePickerLabel.setAttribute('data-value', '11pt');
+      }
+    }
+  }, []);
+
   return (
-    <div className="editor-container">
-      <ReactQuill ref={quillRef} value={value} onChange={setValue} />
+    <div className="h-screen flex flex-col">
+      <div className="flex-1 flex flex-col relative">
+        <ReactQuill 
+          ref={quillRef} 
+          value={value} 
+          onChange={setValue}
+          modules={modules}
+          formats={formats}
+          className="flex-1 flex flex-col"
+        />
+      </div>
     </div>
   );
 };

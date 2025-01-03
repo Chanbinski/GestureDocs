@@ -1,15 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaceLandmarker, FilesetResolver, DrawingUtils, FaceLandmarkerResult } from '@mediapipe/tasks-vision';
+import { Gestures, DEFAULT_GESTURES } from '../types/gestures';
+import { detectGestures } from '../utils/gestureDetection';
 
 const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMesh: Boolean) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Gesture indicators: [headTiltLeft, headTiltRight, headShake]
-  const gesturesRef = useRef({
-    tiltLeft: false,
-    tiltRight: false,
-    shake: false
-  });
-  const [gestures, setGestures] = useState(gesturesRef.current); // For rendering purpose
+  const gesturesRef = useRef<Gestures>(DEFAULT_GESTURES);
+  const [gestures, setGestures] = useState<Gestures>(gesturesRef.current);
 
   useEffect(() => {
     let faceLandmarker: FaceLandmarker;
@@ -29,144 +26,128 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
         numFaces: 1,
       });
 
-      detectGestures();
+      startDetection();
     };
-    // Issue regarding DrawingUtils https://github.com/google-ai-edge/mediapipe/issues/5790
-    const detectGestures = () => {
-        if (!videoRef.current || !canvasRef.current) return;
 
-        const video = videoRef.current;
+    const startDetection = () => {
+      if (!videoRef.current || !canvasRef.current) return;
 
-        if (video.videoWidth === 0 || video.videoHeight === 0) {
-          console.error("Video dimensions are zero. Ensure the webcam feed is loaded.");
-          requestAnimationFrame(detectGestures);
-          return;
-        }
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const canvasCtx = canvas.getContext("2d");
 
-        const canvas = canvasRef.current;
-        const canvasCtx = canvas.getContext("2d");
+      if (!canvasCtx) return;
 
-        if (!canvasCtx) return;
+      // Add check for video readiness
+      if (!video.readyState || video.readyState < 2) {
+        // Wait for video to be ready
+        video.addEventListener('loadeddata', () => startDetection());
+        return;
+      }
 
-        const drawingUtils = new DrawingUtils(canvasCtx);
+      // Ensure valid video dimensions
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.warn("Video dimensions not ready, retrying...");
+        requestAnimationFrame(startDetection);
+        return;
+      }
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-        const showLandmarks = (results: FaceLandmarkerResult) => {
-          if (results.faceLandmarks) {
-            for (const landmarks of results.faceLandmarks) {
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-                { color: "#C0C0C070", lineWidth: 1 }
-              );
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
-                { color: "#30FF30", lineWidth: 2 }
-              );
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,
-                { color: "#30FF30", lineWidth: 2 }
-              );
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
-                { color: "#30FF30", lineWidth: 2 }
-              );
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,
-                { color: "#30FF30", lineWidth: 2 }
-              );
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
-                { color: "#30FF30", lineWidth: 2 }
-              );
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_LIPS,
-                { color: "#30FF30", lineWidth: 2 }
-              );
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
-                { color: "#30FF30", lineWidth: 2 }
-              );
-              drawingUtils.drawConnectors(
-                landmarks,
-                FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
-                { color: "#30FF30", lineWidth: 2 }
-              );
-            }
+      const drawingUtils = new DrawingUtils(canvasCtx);
+
+      const showLandmarks = (results: FaceLandmarkerResult) => {
+        if (results.faceLandmarks) {
+          for (const landmarks of results.faceLandmarks) {
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+              { color: "#C0C0C070", lineWidth: 1 }
+            );
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
+              { color: "#30FF30", lineWidth: 2 }
+            );
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,
+              { color: "#30FF30", lineWidth: 2 }
+            );
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
+              { color: "#30FF30", lineWidth: 2 }
+            );
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,
+              { color: "#30FF30", lineWidth: 2 }
+            );
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
+              { color: "#30FF30", lineWidth: 2 }
+            );
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_LIPS,
+              { color: "#30FF30", lineWidth: 2 }
+            );
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
+              { color: "#30FF30", lineWidth: 2 }
+            );
+            drawingUtils.drawConnectors(
+              landmarks,
+              FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
+              { color: "#30FF30", lineWidth: 2 }
+            );
           }
         }
+      };
 
-        const previousNoseX = { value: null as number | null };
-        let lastDirection = null as string | null;
+      const previousNoseX = { value: null as number | null };
+      const lastDirection = { value: null as number | null };
 
+      const detect = async () => {
+        try {
+          // Only process if video is playing and visible
+          if (video.paused || video.ended || !video.videoWidth) {
+            requestAnimationFrame(detect);
+            return;
+          }
 
-        const detect = () => {
           const results = faceLandmarker.detectForVideo(video, performance.now());
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-          if (showMesh) showLandmarks(results);
-
-          const landmarks = results.faceLandmarks[0];
-
-          // Detect Head Tilt
-          const leftEyeY = landmarks ? landmarks[159].y : 0; // Left eye
-          const rightEyeY = landmarks ? landmarks[386].y : 0; // Right eye
-          const tiltThreshold = 0.03; // Adjust based on sensitivity
-
-          let headTiltLeft = leftEyeY - rightEyeY > tiltThreshold
-          let headTiltRight = rightEyeY - leftEyeY > tiltThreshold;
-
-          // Detect Head Shake
-          const noseX = landmarks ? landmarks[1].x : 0; // Nose tip
-          const shakeThreshold = 0.02; // Adjust based on sensitivity
-
-          let headShake = false;
-          if (previousNoseX.value !== null) {
-            const movement = noseX - previousNoseX.value; // Calculate movement
-            if (movement > shakeThreshold) {
-              // Movement to the right
-              if (lastDirection === "left") {
-                headShake = true; // Complete shake detected (left → right)
-                lastDirection = null; // Reset direction
-              } else {
-                lastDirection = "right"; // Update direction
-              }
-            } else if (movement < -shakeThreshold) {
-              // Movement to the left
-              if (lastDirection === "right") {
-                headShake = true; // Complete shake detected (right → left)
-                lastDirection = null; // Reset direction
-              } else {
-                lastDirection = "left"; // Update direction
-              }
-            }
-          } 
-          
-          previousNoseX.value = noseX;
-
-          const newGestures = {
-            tiltLeft: headTiltLeft, 
-            tiltRight: headTiltRight, 
-            shake: headShake
+          if (showMesh && results.faceLandmarks) {
+            showLandmarks(results);
           }
 
-          if (JSON.stringify(newGestures) !== JSON.stringify(gesturesRef.current)) {
+          if (results.faceLandmarks && results.faceLandmarks[0]) {
+            const landmarks = results.faceLandmarks[0];
+            const newGestures = detectGestures({
+              landmarks,
+              previousNoseX,
+              lastDirection
+            });
+
+            if (JSON.stringify(newGestures) !== JSON.stringify(gesturesRef.current)) {
               gesturesRef.current = newGestures;
               setGestures(newGestures);
-              console.log(gesturesRef);
+            }
           }
 
           requestAnimationFrame(detect);
-        };
+        } catch (error) {
+          console.error('Error in face detection:', error);
+          // Continue detection despite errors
+          requestAnimationFrame(detect);
+        }
+      };
 
       detect();
     };
