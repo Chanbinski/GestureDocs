@@ -54,7 +54,7 @@ function App() {
               onClick={() => setShowMesh(!showMesh)}
               className={`text-center px-2 py-0.5 rounded text-xs cursor-pointer ${showMesh ? "bg-green-500 text-white" : "bg-gray-500 text-gray-300"}`}
             >
-              {showMesh ? "Disable Face Mesh" : "Enable Face Mesh"}
+              {showMesh ? "Disable Mesh" : "Enable Mesh"}
             </div>
           </div>
         )}

@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaceLandmarker, FilesetResolver, DrawingUtils, FaceLandmarkerResult } from '@mediapipe/tasks-vision';
+import {  
+  FilesetResolver, 
+  DrawingUtils, 
+ FaceLandmarker, 
+  FaceLandmarkerResult,
+  PoseLandmarker,
+  PoseLandmarkerResult,
+} from '@mediapipe/tasks-vision';
 import { Gestures, DEFAULT_GESTURES } from '../types/gestures';
 import { detectGestures } from '../utils/gestureDetection';
 
@@ -10,8 +17,9 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
 
   useEffect(() => {
     let faceLandmarker: FaceLandmarker;
+   let poseLandmarker: PoseLandmarker;
 
-    const initFaceLandmarker = async () => {
+    const initLandmarkers = async () => {
       const filesetResolver = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
       );
@@ -26,11 +34,20 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
         numFaces: 1,
       });
 
+      poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numPoses: 1
+      });
+
       startDetection();
     };
 
     const startDetection = () => {
-      if (!videoRef.current || !canvasRef.current) return;
+        if (!videoRef.current || !canvasRef.current) return;
 
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -109,6 +126,22 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
         }
       };
 
+      const showPoseLandmarks = (results: PoseLandmarkerResult) => {
+        if (results.landmarks) {
+          for (const landmarks of results.landmarks) {
+            drawingUtils.drawConnectors(
+              landmarks,
+              PoseLandmarker.POSE_CONNECTIONS,
+              { color: "#00FF00", lineWidth: 2}
+            );
+            drawingUtils.drawLandmarks(landmarks, {
+              color: "#FF0000",
+              lineWidth: 1
+            });
+          }
+        }
+      };
+
       const previousNoseX = { value: null as number | null };
       const lastDirection = { value: null as number | null };
 
@@ -120,15 +153,21 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
             return;
           }
 
-          const results = faceLandmarker.detectForVideo(video, performance.now());
+          const faceResults = faceLandmarker.detectForVideo(video, performance.now());
+          const poseResults = poseLandmarker.detectForVideo(video, performance.now());
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-          if (showMesh && results.faceLandmarks) {
-            showLandmarks(results);
+          if (showMesh) {
+            if (faceResults.faceLandmarks) {
+              showLandmarks(faceResults);
+            }
+            if (poseResults.landmarks) {
+              showPoseLandmarks(poseResults);
+            }
           }
 
-          if (results.faceLandmarks && results.faceLandmarks[0]) {
-            const landmarks = results.faceLandmarks[0];
+          if (faceResults.faceLandmarks && faceResults.faceLandmarks[0]) {
+            const landmarks = faceResults.faceLandmarks[0];
             const newGestures = detectGestures({
               landmarks,
               previousNoseX,
@@ -143,8 +182,7 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
 
           requestAnimationFrame(detect);
         } catch (error) {
-          console.error('Error in face detection:', error);
-          // Continue detection despite errors
+          console.error('Error in detection:', error);
           requestAnimationFrame(detect);
         }
       };
@@ -152,7 +190,7 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
       detect();
     };
 
-    initFaceLandmarker();
+    initLandmarkers();
   }, [videoRef, showMesh]);
 
   return [canvasRef, gesturesRef.current] as const;
