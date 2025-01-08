@@ -35,6 +35,9 @@ function App() {
             <div className={`text-center px-2 py-0.5 rounded text-xs ${gestures.shake ? "bg-green-500 text-white" : "bg-gray-500 text-gray-300"}`}>
               Shake
             </div>
+            <div className={`text-center px-2 py-0.5 rounded text-xs ${gestures.shrug ? "bg-green-500 text-white" : "bg-gray-500 text-gray-300"}`}>
+              Shrug
+            </div>
         </div>
       </div>
 

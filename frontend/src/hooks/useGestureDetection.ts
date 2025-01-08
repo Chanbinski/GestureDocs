@@ -16,7 +16,7 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
   const [gestures, setGestures] = useState<Gestures>(gesturesRef.current);
 
   useEffect(() => {
-    let faceLandmarker: FaceLandmarker;
+  let faceLandmarker: FaceLandmarker;
    let poseLandmarker: PoseLandmarker;
 
     const initLandmarkers = async () => {
@@ -144,6 +144,7 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
 
       const previousNoseX = { value: null as number | null };
       const lastDirection = { value: null as number | null };
+      const previousShoulderY = { value: null as number | null };
 
       const detect = async () => {
         try {
@@ -152,26 +153,24 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
             requestAnimationFrame(detect);
             return;
           }
-
           const faceResults = faceLandmarker.detectForVideo(video, performance.now());
           const poseResults = poseLandmarker.detectForVideo(video, performance.now());
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
           if (showMesh) {
-            if (faceResults.faceLandmarks) {
-              showLandmarks(faceResults);
-            }
-            if (poseResults.landmarks) {
-              showPoseLandmarks(poseResults);
-            }
+            if (faceResults.faceLandmarks) showLandmarks(faceResults);
+            if (poseResults.landmarks) showPoseLandmarks(poseResults);
           }
 
-          if (faceResults.faceLandmarks && faceResults.faceLandmarks[0]) {
-            const landmarks = faceResults.faceLandmarks[0];
+          if (faceResults.faceLandmarks && faceResults.faceLandmarks[0] && poseResults.landmarks && poseResults.landmarks[0]) {
+            const faceLandmarks = faceResults.faceLandmarks[0];
+            const poseLandmarks = poseResults.landmarks[0];
             const newGestures = detectGestures({
-              landmarks,
+              faceLandmarks,
               previousNoseX,
-              lastDirection
+              lastDirection,
+              poseLandmarks,
+              previousShoulderY,
             });
 
             if (JSON.stringify(newGestures) !== JSON.stringify(gesturesRef.current)) {
