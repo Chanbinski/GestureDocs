@@ -1,13 +1,17 @@
 import { FaceLandmarkerResult, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
-import { Gestures } from '../types/gestures';
+import { DEFAULT_GESTURES, Gestures } from '../types/gestures';
 
 interface DetectGesturesParams {
   // Face-related parameters
   faceLandmarks: FaceLandmarkerResult['faceLandmarks'][0];
   previousNoseX: { value: number | null };
   lastDirection: { value: number | null };
+  previousNoseY: { value: number | null };
+  lastNodDirection: { value: number | null };
+  
   tiltThreshold?: number;
   shakeThreshold?: number;
+  nodThreshold?: number;
 
   // Pose-related parameters
   poseLandmarks: PoseLandmarkerResult['landmarks'][0];
@@ -20,23 +24,28 @@ export function detectGestures({
   faceLandmarks,
   previousNoseX,
   lastDirection,
+  previousNoseY,
+  lastNodDirection,
   tiltThreshold = 0.03,
   shakeThreshold = 0.02,
+  nodThreshold = 0.03,
 
   // Pose-related parameters
   poseLandmarks,
   previousShoulderY,
-  shrugThreshold = 0.03
+  shrugThreshold = 0.025
 }: DetectGesturesParams): Gestures {
+
+  if (!faceLandmarks) return DEFAULT_GESTURES;
     
   // Head Tilt Detection
-  const leftEyeY = faceLandmarks ? faceLandmarks[159].y : 0;
-  const rightEyeY = faceLandmarks ? faceLandmarks[386].y : 0;
+  const leftEyeY = faceLandmarks[159].y
+  const rightEyeY = faceLandmarks[386].y
   const headTiltLeft = leftEyeY - rightEyeY > tiltThreshold;
   const headTiltRight = rightEyeY - leftEyeY > tiltThreshold;
 
   // Head Shake Detection
-  const noseX = faceLandmarks ? faceLandmarks[1].x : 0;
+  const noseX = faceLandmarks[1].x;
   let headShake = false;
 
   if (previousNoseX.value !== null) {
@@ -53,6 +62,24 @@ export function detectGestures({
   }
   previousNoseX.value = noseX;
 
+  // Nod
+  const noseY = faceLandmarks[1].y;
+  let nod = false;
+
+  if(previousNoseY.value !== null) {
+    const movement = noseY - previousNoseY.value;
+    const isSignificantMovement = Math.abs(movement) > nodThreshold;
+    const currentDirection = movement > 0 ? 1 : 0;
+
+    if (isSignificantMovement) {
+      if (lastNodDirection.value !== null && lastNodDirection.value !== currentDirection) {
+        nod = true;
+      }
+      lastNodDirection.value = currentDirection;
+    }
+  }
+  previousNoseY.value = noseY;
+
   // Shrug Detection
   let shrug = false;
   if (poseLandmarks && poseLandmarks.length > 0 && previousShoulderY) {
@@ -67,9 +94,9 @@ export function detectGestures({
   }
 
   return {
-    tiltLeft: headTiltLeft,
-    tiltRight: headTiltRight,
+    tilt: headTiltLeft || headTiltRight,
     shake: headShake,
-    shrug: shrug
+    shrug: shrug,
+    nod: nod
   };
 } 

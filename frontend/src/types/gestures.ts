@@ -1,13 +1,13 @@
 export interface Gestures {
-  tiltLeft: boolean;
-  tiltRight: boolean;
+  tilt: boolean;
   shake: boolean;
   shrug: boolean;
+  nod: boolean;
 }
 
 export const DEFAULT_GESTURES: Gestures = {
-  tiltLeft: false,
-  tiltRight: false,
+  tilt: false,
   shake: false,
-  shrug: false
+  shrug: false,
+  nod: false
 }; 

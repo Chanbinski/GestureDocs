@@ -20,6 +20,7 @@ type TextEditorProps = {
 }
 
 const TextEditor: React.FC<TextEditorProps> = ({ gestures }) => {
+  const [title, setTitle] = useState('');
   const [value, setValue] = useState('');
   const quillRef = useRef<any>(null); // Ref to ReactQuill instance
   useEffect(() => {
@@ -87,6 +88,12 @@ const TextEditor: React.FC<TextEditorProps> = ({ gestures }) => {
 
   return (
     <div className="h-screen flex flex-col">
+      <input 
+        className="text-3xl mb-5 border-none outline-none" 
+        value={title} 
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Untitled Document"
+      />
       <div className="flex-1 flex flex-col relative">
         <ReactQuill 
           ref={quillRef} 

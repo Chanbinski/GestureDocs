@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import TextEditor from './components/TextEditor';
 import useWebcam from './hooks/useWebcam'
 import useGestureDetection from './hooks/useGestureDetection';
+import ChatGPTMiniTab from './components/ChatGPTMiniTab';
 import './App.css'
 import { FiSettings, FiCommand } from 'react-icons/fi'
 
@@ -16,8 +17,6 @@ interface SidebarOption {
 function App() {
   const [showMesh, setShowMesh] = useState(false);
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isGesturesOpen, setIsGesturesOpen] = useState(false);
   const videoRef = useWebcam();
   const [canvasRef, gestures] = useGestureDetection(videoRef, showMesh);
   const [activePopup, setActivePopup] = useState<string | null>(null);
@@ -53,17 +52,17 @@ function App() {
       title: 'Gestures',
       content: (
         <div className="flex flex-col gap-2">
-          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.tiltLeft ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
-            Tilt Left
-          </div>
-          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.tiltRight ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
-            Tilt Right
+          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.tilt ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+            Tilt
           </div>
           <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.shake ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
             Head Shake
           </div>
           <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.shrug ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
             Shoulder Shrug
+          </div>
+          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.nod ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+            Nod
           </div>
         </div>
       )
@@ -72,7 +71,7 @@ function App() {
 
   return (
     <>
-      <div className="fixed right-0 top-0 h-full w-16 bg-gray-800 flex flex-col items-center py-4 gap-4">
+      <div className="fixed left-0 top-0 h-full w-16 bg-gray-800 flex flex-col items-center py-4 gap-4">
         {sidebarOptions.map((option) => (
           <div key={option.id} className="relative">
             <button 
@@ -85,7 +84,7 @@ function App() {
             </button>
             
             {activePopup === option.id && (
-              <div className="absolute right-16 top-0 bg-white shadow-lg rounded-lg p-3 w-48">
+              <div className="absolute left-16 top-0 bg-white shadow-lg rounded-lg p-3 w-48">
                 <div className="flex flex-col gap-2">
                   <div className="text-sm font-bold text-gray-900 mb-2">{option.title}</div>
                   {option.content}
@@ -96,14 +95,12 @@ function App() {
         ))}
       </div>
 
-      <div className="mr-16 p-4">
-        <h1 className="py-2 text-3xl font-medium text-gray-800">GestureDocs</h1>
-
-
+      <div className="ml-16 p-4">
+        {/* <h1 className="py-2 text-3xl font-medium text-gray-800">GestureDocs</h1> */}
         <div className="mb-14">
           <TextEditor gestures={gestures}/>
         </div>
-
+        {/* <ChatGPTMiniTab /> */}
         <div className="fixed bottom-4 right-4 flex flex-col items-end gap-3">
           <div className={`relative w-[320px] h-[240px] ${!isDeveloperMode && 'hidden'}`}>
             <video ref={videoRef} className="absolute top-0 left-0 w-full h-full"/>

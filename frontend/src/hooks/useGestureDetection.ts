@@ -144,6 +144,8 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
 
       const previousNoseX = { value: null as number | null };
       const lastDirection = { value: null as number | null };
+      const previousNoseY = { value: null as number | null };
+      const lastNodDirection = { value: null as number | null };
       const previousShoulderY = { value: null as number | null };
 
       const detect = async () => {
@@ -169,6 +171,8 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
               faceLandmarks,
               previousNoseX,
               lastDirection,
+              previousNoseY,
+              lastNodDirection,
               poseLandmarks,
               previousShoulderY,
             });
