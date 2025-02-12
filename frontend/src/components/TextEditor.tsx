@@ -9,51 +9,79 @@ const Size = Quill.import('attributors/style/size');
 Size.whitelist = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '18pt', '24pt', '30pt', '36pt', '48pt', '60pt'];
 Quill.register(Size, true);
 
-type GestureFeatures = {
-  tiltLeft: boolean;
-  tiltRight: boolean;
-  shake: boolean;
+interface GestureFeatures {
+  isHeadTilt: boolean;
+  isHeadShake: boolean;
+  isShrug: boolean;
+  isHeadNod: boolean;
+  isMovingCloser: boolean;
+  isMovingAway: boolean;
 }
 
-type TextEditorProps = {
-  gestures: GestureFeatures;
-}
+const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
+  const resultedGestures: GestureFeatures = {
+    isHeadTilt: gestures.isHeadTilt,
+    isHeadShake: gestures.isHeadShake,
+    isShrug: gestures.isShrug,
+    isHeadNod: gestures.isHeadNod,
+    isMovingCloser: gestures.isMovingCloser,
+    isMovingAway: gestures.isMovingAway,
+  };
 
-const TextEditor: React.FC<TextEditorProps> = ({ gestures }) => {
-  const [title, setTitle] = useState('');
   const [value, setValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const quillRef = useRef<any>(null); // Ref to ReactQuill instance
+  const prevGesturesRef = useRef(resultedGestures);
+
+  // Set default size
   useEffect(() => {
-    //console.log(gestures);
-    const isHeadTilted = gestures.tiltLeft || gestures.tiltRight // Head Tilt Left or Right
-    const isHeadShake = gestures.shake; // Head Shake
-
     if (quillRef.current) {
-      const quill = quillRef.current.getEditor(); // Access Quill instance
+      const editor = quillRef.current.getEditor();
+      editor.format('size', '11pt');  // Use pt to match the Size whitelist
+    }
+  }, []);
 
-      // Change text format dynamically
-      if (isHeadTilted) {
-        quill.format("color", "red"); // New text will be red
-      } else {
-        quill.format("color", "black"); // New text will be black
+  // Gesture detection
+  useEffect(() => {
+    // Skip if gestures haven't changed
+    if (JSON.stringify(prevGesturesRef.current) === JSON.stringify(resultedGestures)) {
+      return;
+    }
+    prevGesturesRef.current = resultedGestures;
+
+    if (!quillRef.current || !isFocused) return;
+
+    const quill = quillRef.current.getEditor();
+    const selection = quill.getSelection();
+
+    // Batch all formatting operations
+    requestAnimationFrame(() => {
+      // Handle color formatting
+      if (resultedGestures.isHeadTilt !== prevGesturesRef.current.isHeadTilt) {
+        // Add comment
       }
 
-      // Delete text on head shake
-      if (isHeadShake) {
-        const selection = quill.getSelection(); // Get the current selection
-        if (selection && selection.length > 0) {
-          // If text is selected, delete it
+      // Handle nod gesture
+      if (resultedGestures.isHeadNod && selection?.length > 0) {
+        const format = quill.getFormat(selection);
+        const isBold = Boolean(format.bold);  // Ensure we have a boolean value
+        quill.formatText(selection.index, selection.length, 'bold', !isBold);
+        //quill.format('bold', false); // Reset cursor formatting
+      }
+
+      // Handle shake gesture
+      if (resultedGestures.isHeadShake && selection) {
+        if (selection.length > 0) {
           quill.deleteText(selection.index, selection.length);
         } else {
-          // If no text is selected, delete the last word
-          const text = quill.getText(); // Get all text from the editor
-          const lastSpaceIndex = text.trim().lastIndexOf(" "); // Find the last space
-          const deleteStart = lastSpaceIndex === -1 ? 0 : lastSpaceIndex + 1; // Delete from the last word
-          quill.deleteText(deleteStart, text.length - deleteStart); // Delete last word
+          const text = quill.getText();
+          const lastSpaceIndex = text.trim().lastIndexOf(" ");
+          const deleteStart = lastSpaceIndex === -1 ? 0 : lastSpaceIndex + 1;
+          quill.deleteText(deleteStart, text.length - deleteStart);
         }
       }
-    }
-  }, [gestures]); // Re-run whenever gestures change
+    });
+  }, [resultedGestures, isFocused]);
 
   // Add toolbar configuration
   const modules = {
@@ -74,10 +102,11 @@ const TextEditor: React.FC<TextEditorProps> = ({ gestures }) => {
   ];
 
   useEffect(() => {
-    // Set default size on mount
+    // Set default size when editor is initialized
     if (quillRef.current) {
       const editor = quillRef.current.getEditor();
-      editor.format('size', '11pt'); // Google Docs default size
+      editor.root.style.fontSize = '11pt';  // Set default size
+      editor.format('size', '11pt');  // Set default size for new text
       
       const sizePickerLabel = document.querySelector('.ql-size .ql-picker-label');
       if (sizePickerLabel) {
@@ -88,12 +117,6 @@ const TextEditor: React.FC<TextEditorProps> = ({ gestures }) => {
 
   return (
     <div className="h-screen flex flex-col">
-      <input 
-        className="text-3xl mb-5 border-none outline-none" 
-        value={title} 
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Untitled Document"
-      />
       <div className="flex-1 flex flex-col relative">
         <ReactQuill 
           ref={quillRef} 
@@ -101,6 +124,8 @@ const TextEditor: React.FC<TextEditorProps> = ({ gestures }) => {
           onChange={setValue}
           modules={modules}
           formats={formats}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           className="flex-1 flex flex-col"
         />
       </div>

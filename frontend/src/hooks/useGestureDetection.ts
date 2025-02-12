@@ -142,12 +142,13 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
         }
       };
 
-      const previousNoseX = { value: null as number | null };
-      const lastDirection = { value: null as number | null };
-      const previousNoseY = { value: null as number | null };
-      const lastNodDirection = { value: null as number | null };
+      const previousYaw = { value: null as number | null };
+      const lastYawDirection = { value: null as number | null };
+      const previousPitch = { value: null as number | null };
+      const lastPitchDirection = { value: null as number | null };
       const previousShoulderY = { value: null as number | null };
-
+      const previousNoseZ = { value: null as number | null };
+      
       const detect = async () => {
         try {
           // Only process if video is playing and visible
@@ -169,12 +170,13 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
             const poseLandmarks = poseResults.landmarks[0];
             const newGestures = detectGestures({
               faceLandmarks,
-              previousNoseX,
-              lastDirection,
-              previousNoseY,
-              lastNodDirection,
               poseLandmarks,
-              previousShoulderY,
+              prevYaw: previousYaw,
+              lastYawDir: lastYawDirection,
+              prevPitch: previousPitch,
+              lastPitchDir: lastPitchDirection,
+              prevShoulderY: previousShoulderY,
+              prevNoseZ: previousNoseZ,
             });
 
             if (JSON.stringify(newGestures) !== JSON.stringify(gesturesRef.current)) {

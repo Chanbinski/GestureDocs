@@ -1,13 +1,17 @@
 export interface Gestures {
-  tilt: boolean;
-  shake: boolean;
-  shrug: boolean;
-  nod: boolean;
+  isHeadTilt: boolean;
+  isHeadShake: boolean;
+  isShrug: boolean;
+  isHeadNod: boolean;
+  isMovingCloser: boolean;
+  isMovingAway: boolean;
 }
 
 export const DEFAULT_GESTURES: Gestures = {
-  tilt: false,
-  shake: false,
-  shrug: false,
-  nod: false
+  isHeadTilt: false,
+  isHeadShake: false,
+  isShrug: false,
+  isHeadNod: false,
+  isMovingCloser: false,
+  isMovingAway: false,
 }; 

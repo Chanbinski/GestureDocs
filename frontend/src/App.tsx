@@ -52,17 +52,23 @@ function App() {
       title: 'Gestures',
       content: (
         <div className="flex flex-col gap-2">
-          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.tilt ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.isHeadTilt ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
             Tilt
           </div>
-          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.shake ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.isHeadShake ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
             Head Shake
           </div>
-          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.shrug ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.isShrug ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
             Shoulder Shrug
           </div>
-          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.nod ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.isHeadNod ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
             Nod
+          </div>
+          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.isMovingCloser ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+            Moving Closer
+          </div>
+          <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.isMovingAway ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+            Moving Away
           </div>
         </div>
       )
@@ -71,11 +77,11 @@ function App() {
 
   return (
     <>
-      <div className="fixed left-0 top-0 h-full w-16 bg-gray-800 flex flex-col items-center py-4 gap-4">
+      <div className="fixed bottom-5 left-5 flex flex-col gap-4 z-50">
         {sidebarOptions.map((option) => (
           <div key={option.id} className="relative">
             <button 
-              className={`p-3 rounded-lg hover:bg-gray-700 transition-colors ${
+              className={`p-3 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors ${
                 activePopup === option.id ? 'bg-gray-700' : ''
               }`}
               onClick={() => setActivePopup(activePopup === option.id ? null : option.id)}
@@ -84,7 +90,7 @@ function App() {
             </button>
             
             {activePopup === option.id && (
-              <div className="absolute left-16 top-0 bg-white shadow-lg rounded-lg p-3 w-48">
+              <div className="absolute bottom-0 left-16 bg-white shadow-lg rounded-lg p-3 w-48">
                 <div className="flex flex-col gap-2">
                   <div className="text-sm font-bold text-gray-900 mb-2">{option.title}</div>
                   {option.content}
@@ -95,12 +101,10 @@ function App() {
         ))}
       </div>
 
-      <div className="ml-16 p-4">
-        {/* <h1 className="py-2 text-3xl font-medium text-gray-800">GestureDocs</h1> */}
+      <div className="p-4">
         <div className="mb-14">
           <TextEditor gestures={gestures}/>
         </div>
-        {/* <ChatGPTMiniTab /> */}
         <div className="fixed bottom-4 right-4 flex flex-col items-end gap-3">
           <div className={`relative w-[320px] h-[240px] ${!isDeveloperMode && 'hidden'}`}>
             <video ref={videoRef} className="absolute top-0 left-0 w-full h-full"/>

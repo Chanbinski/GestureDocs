@@ -36,12 +36,36 @@
   width: 80px;
 }
 
-/* .ql-container.ql-snow { 
-  border: none !important;
+.ql-editor:focus {
+  outline: none !important;
 }
 
+/* Remove borders from the editor container */
+.quill {
+  width: 850px;
+  margin: 1rem auto;
+  background: white;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Remove borders from the editing area */
+.ql-container {
+  min-height: 1056px;  /* Standard US Letter size height */
+  background: white;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 4px;
+  padding: 60px !important;  /* Page margins */
+}
+
+/* Remove borders from the toolbar */
 .ql-toolbar {
-  display: flex;
-  justify-content: center;
-  border: none !important;
-} */
+  display: none !important;
+}
+
+/* Add some background color to make the page stand out */
+body {
+  background-color: #f5f5f5;
+}
