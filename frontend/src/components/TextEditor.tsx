@@ -3,11 +3,15 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import './TextEditor.css';
 import Quill from 'quill';
+import CommentSidebar from './CommentSidebar';
 
 // Register custom font sizes with Quill
 const Size = Quill.import('attributors/style/size');
 Size.whitelist = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '18pt', '24pt', '30pt', '36pt', '48pt', '60pt'];
 Quill.register(Size, true);
+
+const COMMENT_COLOR = '#fef9c3';
+const COMMENT_SELECTED_COLOR = '#ffd54f';
 
 interface GestureFeatures {
   isHeadTilt: boolean;
@@ -16,6 +20,13 @@ interface GestureFeatures {
   isHeadNod: boolean;
   isMovingCloser: boolean;
   isMovingAway: boolean;
+}
+
+interface Comment {
+  id: string;
+  text: string;
+  position: number;
+  length: number;
 }
 
 const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
@@ -33,26 +44,33 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
   const quillRef = useRef<any>(null); // Ref to ReactQuill instance
   const prevGesturesRef = useRef(resultedGestures);
 
-  // Set default size
-  useEffect(() => {
-    if (quillRef.current) {
-      const editor = quillRef.current.getEditor();
-      editor.format('size', '11pt');  // Use pt to match the Size whitelist
-    }
-  }, []);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [commentPosition, setCommentPosition] = useState(0);
+  const [commentLength, setCommentLength] = useState<number | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
 
   // Gesture detection
   useEffect(() => {
     // Skip if gestures haven't changed
-    if (JSON.stringify(prevGesturesRef.current) === JSON.stringify(resultedGestures)) {
-      return;
-    }
+    if (JSON.stringify(prevGesturesRef.current) === JSON.stringify(resultedGestures)) return;
+    
     prevGesturesRef.current = resultedGestures;
 
     if (!quillRef.current || !isFocused) return;
 
     const quill = quillRef.current.getEditor();
     const selection = quill.getSelection();
+
+    // Handle tilt gesture for comments
+    if (resultedGestures.isHeadTilt && selection.length > 0) {
+      setCommentPosition(selection.index);
+      setCommentLength(selection.length);
+      quill.formatText(selection.index, selection.length, 'background', COMMENT_SELECTED_COLOR);
+      quill.setSelection(null);
+      setShowCommentInput(true);
+    }
 
     // Batch all formatting operations
     requestAnimationFrame(() => {
@@ -115,20 +133,133 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (quillRef.current) {
+      const quill = quillRef.current.getEditor();
+      
+      const handleClick = (e: MouseEvent) => {
+        const range = quill.getSelection();
+        if (!range) return;
+        
+        const formats = quill.getFormat(range.index);
+        if (formats.background === COMMENT_COLOR) {
+          const clickedComment = comments.find(comment => 
+            range.index >= comment.position && 
+            range.index < (comment.position + comment.length)
+          );
+          
+          if (clickedComment) {
+            setEditingCommentId(clickedComment.id);
+          }
+        }
+      };
+
+      quill.root.addEventListener('click', handleClick);
+      
+      return () => {
+        quill.root.removeEventListener('click', handleClick);
+      };
+    }
+  }, [comments, editingCommentId]);
+
+  
+  const handleAddComment = (text: string) => {
+    if (text.trim()) {
+      const newComment = {
+        id: Date.now().toString(),
+        text: text,
+        position: commentPosition,
+        length: commentLength || 1
+      };
+      
+      setComments(prev => [...prev, newComment]);
+      
+      // Apply highlight to the new comment's text
+      if (quillRef.current) {
+        const quill = quillRef.current.getEditor();
+        quill.formatText(newComment.position, newComment.length, 'background', COMMENT_COLOR);
+      }
+      
+      setCommentText('');
+      setShowCommentInput(false);
+    }
+  };
+
+  const highlight = (color: string, position: number, length: number | null) => {
+    if (quillRef.current && length !== null) {
+      const quill = quillRef.current.getEditor();
+      quill.formatText(position, length, 'background', color);
+    }
+  }
+
+  // For new comments
+  const handleUnselectComment = () => {
+    setShowCommentInput(false);
+    highlight('', commentPosition, commentLength);
+  }
+
+  // For already existing comments
+  const handleCancelComment = () => {
+    setShowCommentInput(false);
+    highlight(COMMENT_COLOR, commentPosition, commentLength);
+  };
+
+  const handleUpdateComment = (id: string, newText: string) => {
+    setComments(comments.map(comment => {
+      if (comment.id === id) {
+        if (quillRef.current) {
+          const quill = quillRef.current.getEditor();
+          quill.formatText(comment.position, comment.length, 'background', COMMENT_COLOR);
+        }
+        return { ...comment, text: newText };
+      }
+      return comment;
+    }))
+  };
+
+  const handleCommentClick = (position: number, length: number) => {
+    // First, unhighlight all comments
+    comments.forEach(comment => {
+      highlight(COMMENT_COLOR, comment.position, comment.length);
+    });
+    
+    // Then highlight the clicked comment
+    highlight(COMMENT_SELECTED_COLOR, position, length);
+  };
+
+  const handleDeleteComment = (id: string) => {
+    handleUnselectComment();
+    setComments(prev => prev.filter(comment => comment.id !== id));
+  };
+
   return (
-    <div className="h-screen flex flex-col">
-      <div className="flex-1 flex flex-col relative">
-        <ReactQuill 
-          ref={quillRef} 
-          value={value} 
-          onChange={setValue}
-          modules={modules}
-          formats={formats}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          className="flex-1 flex flex-col"
-        />
+    <div className="h-screen flex">
+      <div className="flex-1 flex justify-center">
+        <div className="w-[850px]">
+          <ReactQuill 
+            ref={quillRef} 
+            value={value} 
+            onChange={setValue}
+            modules={modules}
+            formats={formats}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+          />
+        </div>
       </div>
+      <CommentSidebar
+        comments={comments}
+        showCommentInput={showCommentInput}
+        editingCommentId={editingCommentId}
+        commentText={commentText}
+        onCommentTextChange={setCommentText}
+        onUnselectComment={handleUnselectComment}
+        onCancel={handleCancelComment}
+        onAddComment={handleAddComment}
+        onUpdateComment={handleUpdateComment}
+        onCommentClick={handleCommentClick}
+        onDeleteComment={handleDeleteComment}
+      />
     </div>
   );
 };
