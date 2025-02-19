@@ -10,14 +10,30 @@ import {
 import { Gestures, DEFAULT_GESTURES } from '../types/gestures';
 import { detectGestures } from '../utils/gestureDetection';
 
-const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMesh: Boolean) => {
+interface GestureThresholds {
+  tilt: number;
+  shake: number;
+  nod: number;
+  tiltUp: number;
+}
+
+const useGestureDetection = (
+  videoRef: React.RefObject<HTMLVideoElement>, 
+  showMesh: Boolean,
+  thresholds: GestureThresholds
+) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gesturesRef = useRef<Gestures>(DEFAULT_GESTURES);
   const [gestures, setGestures] = useState<Gestures>(gesturesRef.current);
+  const thresholdsRef = useRef(thresholds);
+
+  useEffect(() => {
+    thresholdsRef.current = thresholds;
+  }, [thresholds]);
 
   useEffect(() => {
   let faceLandmarker: FaceLandmarker;
-   let poseLandmarker: PoseLandmarker;
+  //let poseLandmarker: PoseLandmarker;
 
     const initLandmarkers = async () => {
       const filesetResolver = await FilesetResolver.forVisionTasks(
@@ -34,14 +50,14 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
         numFaces: 1,
       });
 
-      poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
-        baseOptions: {
-          modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
-          delegate: "GPU"
-        },
-        runningMode: "VIDEO",
-        numPoses: 1
-      });
+      // poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
+      //   baseOptions: {
+      //     modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+      //     delegate: "GPU"
+      //   },
+      //   runningMode: "VIDEO",
+      //   numPoses: 1
+      // });
 
       startDetection();
     };
@@ -126,28 +142,25 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
         }
       };
 
-      const showPoseLandmarks = (results: PoseLandmarkerResult) => {
-        if (results.landmarks) {
-          for (const landmarks of results.landmarks) {
-            drawingUtils.drawConnectors(
-              landmarks,
-              PoseLandmarker.POSE_CONNECTIONS,
-              { color: "#00FF00", lineWidth: 2}
-            );
-            drawingUtils.drawLandmarks(landmarks, {
-              color: "#FF0000",
-              lineWidth: 1
-            });
-          }
-        }
-      };
+      // const showPoseLandmarks = (results: PoseLandmarkerResult) => {
+      //   if (results.landmarks) {
+      //     for (const landmarks of results.landmarks) {
+      //       drawingUtils.drawConnectors(
+      //         landmarks,
+      //         PoseLandmarker.POSE_CONNECTIONS,
+      //         { color: "#00FF00", lineWidth: 2}
+      //       );
+      //       drawingUtils.drawLandmarks(landmarks, {
+      //         color: "#FF0000",
+      //         lineWidth: 1
+      //       });
+      //     }
+      //   }
+      // };
 
       const previousYaw = { value: null as number | null };
-      const lastYawDirection = { value: null as number | null };
+      const lastYawDirection = { value: null as string | null };
       const previousPitch = { value: null as number | null };
-      const lastPitchDirection = { value: null as number | null };
-      const previousShoulderY = { value: null as number | null };
-      const previousNoseZ = { value: null as number | null };
       
       const detect = async () => {
         try {
@@ -157,26 +170,23 @@ const useGestureDetection = (videoRef: React.RefObject<HTMLVideoElement>, showMe
             return;
           }
           const faceResults = faceLandmarker.detectForVideo(video, performance.now());
-          const poseResults = poseLandmarker.detectForVideo(video, performance.now());
+          // const poseResults = poseLandmarker.detectForVideo(video, performance.now());
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
           if (showMesh) {
             if (faceResults.faceLandmarks) showLandmarks(faceResults);
-            if (poseResults.landmarks) showPoseLandmarks(poseResults);
+            // if (poseResults.landmarks) showPoseLandmarks(poseResults);
           }
 
-          if (faceResults.faceLandmarks && faceResults.faceLandmarks[0] && poseResults.landmarks && poseResults.landmarks[0]) {
+          if (faceResults.faceLandmarks && faceResults.faceLandmarks[0]) {
             const faceLandmarks = faceResults.faceLandmarks[0];
-            const poseLandmarks = poseResults.landmarks[0];
+            //const poseLandmarks = poseResults.landmarks[0];
             const newGestures = detectGestures({
               faceLandmarks,
-              poseLandmarks,
               prevYaw: previousYaw,
               lastYawDir: lastYawDirection,
               prevPitch: previousPitch,
-              lastPitchDir: lastPitchDirection,
-              prevShoulderY: previousShoulderY,
-              prevNoseZ: previousNoseZ,
+              thresholds: thresholdsRef.current,
             });
 
             if (JSON.stringify(newGestures) !== JSON.stringify(gesturesRef.current)) {

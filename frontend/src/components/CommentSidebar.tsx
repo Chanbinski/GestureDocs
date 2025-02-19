@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 interface Comment {
   id: string;
   text: string;
-  position: number;
-  length: number;
+  range: {
+    index: number;
+    length: number;
+  };
 }
 
 interface CommentSidebarProps {
@@ -12,10 +14,10 @@ interface CommentSidebarProps {
   showCommentInput: boolean;
   commentText: string;
   onCommentTextChange: (text: string) => void;
-  onCancel: () => void;
+  onCancel: (index: number, length: number) => void;
   onAddComment: (text: string) => void;
   onUpdateComment: (id: string, text: string) => void;
-  onCommentClick: (position: number, length: number) => void;
+  onCommentClick: (index: number, length: number) => void;
   onDeleteComment: (id: string) => void;
   onUnselectComment: () => void;
   editingCommentId: string | null;
@@ -39,20 +41,19 @@ const CommentSidebar = ({
   const commentInputRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Focus the textarea when showCommentInput becomes true
-  React.useEffect(() => {
+  useEffect(() => {
     if (showCommentInput && commentInputRef.current) {
       commentInputRef.current.focus();
     }
   }, [showCommentInput]);
 
   useEffect(() => {
-    console.log(editingCommentId);
     if (editingCommentId) {
       const comment = comments.find(c => c.id === editingCommentId);
       if (comment) {
         setEditingId(editingCommentId);
         setEditText(comment.text);
-        onCommentClick(comment.position, comment.length);
+        onCommentClick(comment.range.index, comment.range.length);
       }
     }
   }, [editingCommentId]);
@@ -73,30 +74,39 @@ const CommentSidebar = ({
                 <div className="flex justify-end gap-2">
                   <button 
                     onClick={() => {
-                      onCancel();
+                      onCancel(comment.range.index, comment.range.length);
                       setEditingId(null);
                     }}
-                    className="text-sm text-gray-600 hover:text-gray-800"
+                    className="p-1 text-gray-600 hover:text-gray-800 rounded-full"
+                    aria-label="Cancel"
                   >
-                    Cancel
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                   <button 
                     onClick={() => {
                       onDeleteComment(comment.id);
                       setEditingId(null);
                     }}
-                    className="text-sm text-red-600 hover:text-red-800"
+                    className="p-1 text-red-600 hover:text-red-800 rounded-full"
+                    aria-label="Delete"
                   >
-                    Delete
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                   </button>
                   <button 
                     onClick={() => {
                       onUpdateComment(comment.id, editText);
                       setEditingId(null);
                     }}
-                    className="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    className="p-1 text-blue-500 hover:text-blue-600 rounded-full"
+                    aria-label="Save"
                   >
-                    Save
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -104,7 +114,7 @@ const CommentSidebar = ({
               <p 
                 className="text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded"
                 onClick={() => {
-                  onCommentClick(comment.position, comment.length);
+                  onCommentClick(comment.range.index, comment.range.length);
                   setEditingId(comment.id);
                   setEditText(comment.text);
                 }}
@@ -128,15 +138,21 @@ const CommentSidebar = ({
             <div className="flex justify-end gap-2 mt-2">
               <button 
                 onClick={onUnselectComment}
-                className="text-sm text-gray-600 hover:text-gray-800"
+                className="p-1 text-gray-600 hover:text-gray-800 rounded-full"
+                aria-label="Cancel"
               >
-                Cancel
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
               <button 
                 onClick={() => onAddComment(commentText)}
-                className="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="p-1 text-blue-500 hover:text-blue-600 rounded-full"
+                aria-label="Add comment"
               >
-                Comment
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
               </button>
             </div>
           </div>

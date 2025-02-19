@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import './TextEditor.css';
 import Quill from 'quill';
 import CommentSidebar from './CommentSidebar';
+import ChatGPTMiniTab from './ChatGPTMiniTab';
 
 // Register custom font sizes with Quill
 const Size = Quill.import('attributors/style/size');
@@ -16,27 +17,25 @@ const COMMENT_SELECTED_COLOR = '#ffd54f';
 interface GestureFeatures {
   isHeadTilt: boolean;
   isHeadShake: boolean;
-  isShrug: boolean;
+  isHeadTiltUp: boolean;
   isHeadNod: boolean;
-  isMovingCloser: boolean;
-  isMovingAway: boolean;
 }
 
 interface Comment {
   id: string;
   text: string;
-  position: number;
-  length: number;
+  range: {
+    index: number;
+    length: number;
+  };
 }
 
 const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
   const resultedGestures: GestureFeatures = {
     isHeadTilt: gestures.isHeadTilt,
     isHeadShake: gestures.isHeadShake,
-    isShrug: gestures.isShrug,
+    isHeadTiltUp: gestures.isHeadTiltUp,
     isHeadNod: gestures.isHeadNod,
-    isMovingCloser: gestures.isMovingCloser,
-    isMovingAway: gestures.isMovingAway,
   };
 
   const [value, setValue] = useState('');
@@ -47,11 +46,52 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [commentPosition, setCommentPosition] = useState(0);
-  const [commentLength, setCommentLength] = useState<number | null>(null);
+  const [commentRange, setCommentRange] = useState<{index: number , length: number} | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
 
-  // Gesture detection
+  // Add state for the popup
+  const [showChatGPTPopup, setShowChatGPTPopup] = useState(false);
+
+  const highlight = (color: string, position: number, length: number | null) => {
+    if (quillRef.current && length !== null) {
+      const quill = quillRef.current.getEditor();
+      quill.formatText(position, length, 'background', color);
+    }
+  }
+
+  // Add toolbar configuration
+  const modules = {
+    toolbar: [
+      [{ 'size': Size.whitelist }],  // Use the registered sizes
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['clean']
+    ]
+  };
+  const formats = [
+    'size',
+    'bold', 'italic', 'underline', 'strike',
+    'color', 'background',
+    'list', 'bullet'
+  ];
+
+  // Text Editor Style
+  useEffect(() => {
+    // Set default size when editor is initialized
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      editor.root.style.fontSize = '11pt';  // Set default size
+      editor.format('size', '11pt');  // Set default size for new text
+      
+      const sizePickerLabel = document.querySelector('.ql-size .ql-picker-label');
+      if (sizePickerLabel) {
+        sizePickerLabel.setAttribute('data-value', '11pt');
+      }
+    }
+  }, []);
+
+  // Gesture Detection
   useEffect(() => {
     // Skip if gestures haven't changed
     if (JSON.stringify(prevGesturesRef.current) === JSON.stringify(resultedGestures)) return;
@@ -63,20 +103,18 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
     const quill = quillRef.current.getEditor();
     const selection = quill.getSelection();
 
-    // Handle tilt gesture for comments
-    if (resultedGestures.isHeadTilt && selection.length > 0) {
-      setCommentPosition(selection.index);
-      setCommentLength(selection.length);
-      quill.formatText(selection.index, selection.length, 'background', COMMENT_SELECTED_COLOR);
-      quill.setSelection(null);
-      setShowCommentInput(true);
-    }
-
-    // Batch all formatting operations
     requestAnimationFrame(() => {
-      // Handle color formatting
-      if (resultedGestures.isHeadTilt !== prevGesturesRef.current.isHeadTilt) {
-        // Add comment
+      // Handle shrug gesture to open ChatGPT popup
+      if (resultedGestures.isHeadTiltUp) {
+        setShowChatGPTPopup(true);
+      }
+
+      // Handle tilt gesture for comments
+      if (resultedGestures.isHeadTilt && selection.length > 0) {
+        setCommentRange({index: selection.index, length: selection.length});
+        highlight(COMMENT_SELECTED_COLOR, selection.index, selection.length);
+        quill.setSelection(null);
+        setShowCommentInput(true);
       }
 
       // Handle nod gesture
@@ -101,55 +139,81 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
     });
   }, [resultedGestures, isFocused]);
 
-  // Add toolbar configuration
-  const modules = {
-    toolbar: [
-      [{ 'size': Size.whitelist }],  // Use the registered sizes
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['clean']
-    ]
-  };
-
-  const formats = [
-    'size',
-    'bold', 'italic', 'underline', 'strike',
-    'color', 'background',
-    'list', 'bullet'
-  ];
-
+  // Update Comment Ranges
   useEffect(() => {
-    // Set default size when editor is initialized
-    if (quillRef.current) {
-      const editor = quillRef.current.getEditor();
-      editor.root.style.fontSize = '11pt';  // Set default size
-      editor.format('size', '11pt');  // Set default size for new text
-      
-      const sizePickerLabel = document.querySelector('.ql-size .ql-picker-label');
-      if (sizePickerLabel) {
-        sizePickerLabel.setAttribute('data-value', '11pt');
-      }
-    }
+    if (!quillRef.current) return;
+    
+    const quill = quillRef.current.getEditor();
+    
+    const handleTextChange = (delta: any) => {
+      // Calculate the length change and position from the delta
+      const changes = delta.ops.reduce((acc: {index: number, length: number}, op: any) => {
+        if (op.retain) {
+          acc.index += op.retain;
+        }
+        if (op.insert) {
+          acc.length += typeof op.insert === 'string' ? op.insert.length : 1;
+        }
+        if (op.delete) {
+          acc.length -= op.delete;
+        }
+        return acc;
+      }, { index: 0, length: 0 });
+
+      // Update all comment ranges that come after the change
+      setComments(prevComments => 
+        prevComments.map(comment => {
+          if (comment.range.index > changes.index) {
+            // If comment is after the change, shift its position
+            return {
+              ...comment,
+              range: {
+                index: comment.range.index + changes.length,
+                length: comment.range.length
+              }
+            };
+          }
+          if (comment.range.index + comment.range.length > changes.index) {
+            // If change is within the comment, adjust its length
+            return {
+              ...comment,
+              range: {
+                index: comment.range.index,
+                length: comment.range.length + changes.length
+              }
+            };
+          }
+          return comment;
+        })
+      );
+    };
+
+    quill.on('text-change', handleTextChange);
+    
+    return () => {
+      quill.off('text-change', handleTextChange);
+    };
   }, []);
 
+  // Text for Comment Click Handling
   useEffect(() => {
     if (quillRef.current) {
       const quill = quillRef.current.getEditor();
       
-      const handleClick = (e: MouseEvent) => {
+      const handleClick = () => {
         const range = quill.getSelection();
         if (!range) return;
         
         const formats = quill.getFormat(range.index);
         if (formats.background === COMMENT_COLOR) {
           const clickedComment = comments.find(comment => 
-            range.index >= comment.position && 
-            range.index < (comment.position + comment.length)
+            range.index >= comment.range.index && 
+            range.index < (comment.range.index + comment.range.length)
           );
           
           if (clickedComment) {
             setEditingCommentId(clickedComment.id);
+            handleCommentClick(clickedComment.range.index, clickedComment.range.length);
           }
         }
       };
@@ -162,73 +226,71 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
     }
   }, [comments, editingCommentId]);
 
-  
+  const handleCommentClick = (position: number, length: number) => {
+    comments.forEach(comment => {
+      highlight(COMMENT_COLOR, comment.range.index, comment.range.length);
+    });
+    highlight(COMMENT_SELECTED_COLOR, position, length);
+  };
+
+  // ADD, UNSELECT is for new comments in the sidebar
   const handleAddComment = (text: string) => {
-    if (text.trim()) {
+    if (commentRange && commentRange.length > 0) {
       const newComment = {
         id: Date.now().toString(),
         text: text,
-        position: commentPosition,
-        length: commentLength || 1
+        range: {
+          index: commentRange.index,
+          length: commentRange.length
+        }
       };
-      
-      setComments(prev => [...prev, newComment]);
-      
-      // Apply highlight to the new comment's text
+      setComments([...comments, newComment]);
+
+      highlight(COMMENT_COLOR, commentRange.index, commentRange.length);
+      setCommentText('');
+      setCommentRange(null);
+      setShowCommentInput(false);
+
+      // Reset cursor format
       if (quillRef.current) {
         const quill = quillRef.current.getEditor();
-        quill.formatText(newComment.position, newComment.length, 'background', COMMENT_COLOR);
+        const cursorPosition = commentRange.index + commentRange.length;
+        quill.setSelection(cursorPosition, 0);  // Move cursor to end of comment
+        quill.format('background', false);  // Reset format only at cursor position
       }
-      
-      setCommentText('');
-      setShowCommentInput(false);
     }
   };
 
-  const highlight = (color: string, position: number, length: number | null) => {
-    if (quillRef.current && length !== null) {
-      const quill = quillRef.current.getEditor();
-      quill.formatText(position, length, 'background', color);
-    }
-  }
-
-  // For new comments
   const handleUnselectComment = () => {
+    if (commentRange) highlight('', commentRange.index, commentRange.length);
+    setCommentText('');
+    setCommentRange(null);
     setShowCommentInput(false);
-    highlight('', commentPosition, commentLength);
   }
 
-  // For already existing comments
-  const handleCancelComment = () => {
-    setShowCommentInput(false);
-    highlight(COMMENT_COLOR, commentPosition, commentLength);
-  };
-
+  // UPDATE, CANCEL, DELETE is for already existing comments in the sidebar
   const handleUpdateComment = (id: string, newText: string) => {
     setComments(comments.map(comment => {
       if (comment.id === id) {
-        if (quillRef.current) {
-          const quill = quillRef.current.getEditor();
-          quill.formatText(comment.position, comment.length, 'background', COMMENT_COLOR);
-        }
+        if (quillRef.current) highlight(COMMENT_COLOR, comment.range.index, comment.range.length);
         return { ...comment, text: newText };
       }
       return comment;
     }))
+    setEditingCommentId(null);
   };
 
-  const handleCommentClick = (position: number, length: number) => {
-    // First, unhighlight all comments
-    comments.forEach(comment => {
-      highlight(COMMENT_COLOR, comment.position, comment.length);
-    });
-    
-    // Then highlight the clicked comment
-    highlight(COMMENT_SELECTED_COLOR, position, length);
+  const handleCancelComment = (commentIndex: number, commentLength: number) => {
+    if (commentIndex && commentLength) {
+      highlight(COMMENT_COLOR, commentIndex, commentLength);
+    }
   };
 
   const handleDeleteComment = (id: string) => {
-    handleUnselectComment();
+    const commentToDelete = comments.find(comment => comment.id === id);
+    if (commentToDelete) {
+      highlight('', commentToDelete.range.index, commentToDelete.range.length);
+    }
     setComments(prev => prev.filter(comment => comment.id !== id));
   };
 
@@ -260,6 +322,9 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
         onCommentClick={handleCommentClick}
         onDeleteComment={handleDeleteComment}
       />
+      {showChatGPTPopup && (
+        <ChatGPTMiniTab onClose={() => setShowChatGPTPopup(false)} />
+      )}
     </div>
   );
 };
