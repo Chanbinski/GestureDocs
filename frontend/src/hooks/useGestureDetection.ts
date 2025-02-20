@@ -4,8 +4,6 @@ import {
   DrawingUtils, 
  FaceLandmarker, 
   FaceLandmarkerResult,
-  PoseLandmarker,
-  PoseLandmarkerResult,
 } from '@mediapipe/tasks-vision';
 import { Gestures, DEFAULT_GESTURES } from '../types/gestures';
 import { detectGestures } from '../utils/gestureDetection';
@@ -28,6 +26,7 @@ const useGestureDetection = (
   const thresholdsRef = useRef(thresholds);
 
   useEffect(() => {
+    console.log(gestures);
     thresholdsRef.current = thresholds;
   }, [thresholds]);
 

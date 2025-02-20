@@ -1,4 +1,4 @@
-import { FiFile, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiTrash2 } from 'react-icons/fi';
 import { Document } from '../types/document';
 
 interface DocumentsSidebarProps {
