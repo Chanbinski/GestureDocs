@@ -20,7 +20,7 @@ function App() {
   const [thresholds, setThresholds] = useState<GestureThresholds>({
     tilt: 0.03,
     shake: 5,
-    nod: 1.2,
+    nod: 1.5,
     tiltUp: 1.5
   });
 
