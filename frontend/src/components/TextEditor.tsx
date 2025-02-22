@@ -127,13 +127,26 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
 
       // Handle shake gesture
       if (resultedGestures.isHeadShake && selection) {
-        if (selection.length > 0) {
-          quill.deleteText(selection.index, selection.length);
-        } else {
-          const text = quill.getText();
-          const lastSpaceIndex = text.trim().lastIndexOf(" ");
-          const deleteStart = lastSpaceIndex === -1 ? 0 : lastSpaceIndex + 1;
-          quill.deleteText(deleteStart, text.length - deleteStart);
+        const quillText = quill.getText();
+        const cursorPosition = selection.index;
+        
+        // Find the end of the closest word to the left
+        let endOfWord = cursorPosition;
+        while (endOfWord > 0 && /\s/.test(quillText[endOfWord - 1])) {
+          endOfWord--;
+        }
+        
+        // Find the start of this word
+        let startOfWord = endOfWord;
+        while (startOfWord > 0 && !/\s/.test(quillText[startOfWord - 1])) {
+          startOfWord--;
+        }
+        
+        // Delete the word if we found one
+        if (endOfWord > startOfWord) {
+          quill.deleteText(startOfWord, endOfWord - startOfWord);
+          // Set cursor position to where the word ended
+          quill.setSelection(startOfWord, 0);
         }
       }
     });
@@ -186,7 +199,15 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
           return comment;
         })
       );
-    };
+
+      setComments(prevComments =>
+        prevComments.filter(comment => {
+          if (comment.range.length <= 0) {
+            return false;
+          }
+          return true;
+        }));
+      };
 
     quill.on('text-change', handleTextChange);
     

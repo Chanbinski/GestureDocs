@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import TextEditor from './components/TextEditor';
 import useWebcam from './hooks/useWebcam'
 import useGestureDetection from './hooks/useGestureDetection';
@@ -28,6 +28,20 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showDeveloperModal, setShowDeveloperModal] = useState(false);
   const [showGestureModal, setShowGestureModal] = useState(false);
+  const [showGestureDot, setShowGestureDot] = useState(false);
+
+  const prevGesturesRef = useRef(gestures);
+
+  // Effect to show the dot when a gesture is detected
+  useEffect(() => {
+    if (JSON.stringify(prevGesturesRef.current) !== JSON.stringify(gestures)) {
+      setShowGestureDot(true);
+      const timer = setTimeout(() => {
+        setShowGestureDot(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [gestures]);
 
   return (
     <>
@@ -212,7 +226,11 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <div className="p-4">
+      <div className="p-4 relative">
+          {/* Gesture Detection Dot */}
+          {showGestureDot && (
+            <div className="absolute right-5 top-5 w-2 h-2 bg-black rounded-full z-50" />
+          )}
         <div className="mb-14">
           <TextEditor gestures={gestures}/>
         </div>
