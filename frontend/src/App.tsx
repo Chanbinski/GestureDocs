@@ -15,6 +15,7 @@ interface GestureThresholds {
 function App() {
   const [showMesh, setShowMesh] = useState(false);
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+  const [gestureUsed, setGestureUsed] = useState(true);
   const videoRef = useWebcam();
 
   const [thresholds, setThresholds] = useState<GestureThresholds>({
@@ -24,12 +25,11 @@ function App() {
     tiltUp: 1.5
   });
 
-  const [canvasRef, gestures] = useGestureDetection(videoRef, showMesh, thresholds);
+  const [canvasRef, gestures] = useGestureDetection(videoRef, showMesh, thresholds, gestureUsed);
   const [showSettings, setShowSettings] = useState(false);
   const [showDeveloperModal, setShowDeveloperModal] = useState(false);
   const [showGestureModal, setShowGestureModal] = useState(false);
   const [showGestureDot, setShowGestureDot] = useState(false);
-
   const prevGesturesRef = useRef(gestures);
 
   // Effect to show the dot when a gesture is detected
@@ -88,7 +88,6 @@ function App() {
               <div className="flex justify-between items-center mb-4">
                 <div className="flex flex-col gap-2">
                   <h2 className="text-lg font-bold text-gray-900">Gesture Settings</h2>
-                  <div className="text-sm text-gray-500">If gesture is detected, the text area will be highlighted in green.</div>
                 </div>
                 <button 
                   onClick={() => setShowGestureModal(false)}
@@ -99,8 +98,33 @@ function App() {
                   </svg>
                 </button>
               </div>
+
+              <div className="p-1 mb-5">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-700">Gesture Controls</div>
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={gestureUsed}
+                    onChange={(e) => {
+                      setGestureUsed(e.target.checked)
+                      setShowGestureDot(false)
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
+                    peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] 
+                    after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 
+                    after:border after:rounded-full after:h-5 after:w-5 after:transition-all 
+                    peer-checked:bg-green-500">
+                  </div>
+                </label>
+              </div>
+            </div>
+
               
-              <div className="space-y-6">
+             {gestureUsed && <div className="space-y-6">
+              <div className="p-1 text-sm text-gray-500">If gesture is detected, the text area will be highlighted in green.</div>
                 <div>
                   <div className={`px-2.5 py-1 rounded text-sm font-medium ${gestures.isHeadTilt ? "bg-green-500 text-white" : "bg-gray-100 text-gray-700"}`}>
                     Head Tilt
@@ -180,8 +204,8 @@ function App() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </div> }
+            </div> 
           )}
         </div>
       )}
@@ -226,13 +250,13 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <div className="p-4 relative">
+      <div className="relative">
           {/* Gesture Detection Dot */}
           {showGestureDot && (
             <div className="absolute right-5 top-5 w-2 h-2 bg-black rounded-full z-50" />
           )}
         <div className="mb-14">
-          <TextEditor gestures={gestures}/>
+          <TextEditor gestures={gestures} gestureUsed={gestureUsed}/>
         </div>
         <div className="fixed bottom-4 right-4 flex flex-col items-end gap-3">
           <div className={`relative w-[320px] h-[240px] ${!isDeveloperMode && 'hidden'}`}>

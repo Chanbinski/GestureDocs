@@ -5,6 +5,7 @@ import './TextEditor.css';
 import Quill from 'quill';
 import CommentSidebar from './CommentSidebar';
 import ChatGPTMiniTab from './ChatGPTMiniTab';
+import { BoldIcon, ChatBubbleLeftIcon, CommandLineIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 // Register custom font sizes with Quill
 const Size = Quill.import('attributors/style/size');
@@ -30,7 +31,7 @@ interface Comment {
   };
 }
 
-const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
+const TextEditor = ({ gestures, gestureUsed }: { gestures: GestureFeatures, gestureUsed: boolean }) => {
   const resultedGestures: GestureFeatures = {
     isHeadTilt: gestures.isHeadTilt,
     isHeadShake: gestures.isHeadShake,
@@ -91,6 +92,53 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
     }
   }, []);
 
+  const handleBold = () => {
+    const quill = quillRef.current.getEditor();
+    const selection = quill.getSelection();
+    if (selection.length > 0) {
+      const format = quill.getFormat(selection);
+      const isBold = Boolean(format.bold);
+      quill.formatText(selection.index, selection.length, 'bold', !isBold);
+    }
+  }
+
+  const handleComment = () => {
+    const quill = quillRef.current.getEditor();
+    const selection = quill.getSelection();
+    if (selection.length > 0) {
+      setCommentRange({index: selection.index, length: selection.length});
+      highlight(COMMENT_SELECTED_COLOR, selection.index, selection.length);
+      quill.setSelection(null);
+      setShowCommentInput(true);
+    }
+  }
+
+  const handleDelete = () => {
+    const quill = quillRef.current.getEditor();
+    const quillText = quill.getText();
+    const selection = quill.getSelection();
+    const cursorPosition = selection.index;
+    
+    // Find the end of the closest word to the left
+    let endOfWord = cursorPosition;
+    while (endOfWord > 0 && /\s/.test(quillText[endOfWord - 1])) {
+      endOfWord--;
+    }
+    
+    // Find the start of this word
+    let startOfWord = endOfWord;
+    while (startOfWord > 0 && !/\s/.test(quillText[startOfWord - 1])) {
+      startOfWord--;
+    }
+    
+    // Delete the word if we found one
+    if (endOfWord > startOfWord) {
+      quill.deleteText(startOfWord, endOfWord - startOfWord);
+      // Set cursor position to where the word ended
+      quill.setSelection(startOfWord, 0);
+    }
+  }
+
   // Gesture Detection
   useEffect(() => {
     // Skip if gestures haven't changed
@@ -110,44 +158,18 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
       }
 
       // Handle tilt gesture for comments
-      if (resultedGestures.isHeadTilt && selection.length > 0) {
-        setCommentRange({index: selection.index, length: selection.length});
-        highlight(COMMENT_SELECTED_COLOR, selection.index, selection.length);
-        quill.setSelection(null);
-        setShowCommentInput(true);
+      if (resultedGestures.isHeadTilt) {
+        handleComment();
       }
 
       // Handle nod gesture
-      if (resultedGestures.isHeadNod && selection?.length > 0) {
-        const format = quill.getFormat(selection);
-        const isBold = Boolean(format.bold);  // Ensure we have a boolean value
-        quill.formatText(selection.index, selection.length, 'bold', !isBold);
-        //quill.format('bold', false); // Reset cursor formatting
+      if (resultedGestures.isHeadNod) {
+        handleBold();
       }
 
       // Handle shake gesture
       if (resultedGestures.isHeadShake && selection) {
-        const quillText = quill.getText();
-        const cursorPosition = selection.index;
-        
-        // Find the end of the closest word to the left
-        let endOfWord = cursorPosition;
-        while (endOfWord > 0 && /\s/.test(quillText[endOfWord - 1])) {
-          endOfWord--;
-        }
-        
-        // Find the start of this word
-        let startOfWord = endOfWord;
-        while (startOfWord > 0 && !/\s/.test(quillText[startOfWord - 1])) {
-          startOfWord--;
-        }
-        
-        // Delete the word if we found one
-        if (endOfWord > startOfWord) {
-          quill.deleteText(startOfWord, endOfWord - startOfWord);
-          // Set cursor position to where the word ended
-          quill.setSelection(startOfWord, 0);
-        }
+        handleDelete();
       }
     });
   }, [resultedGestures, isFocused]);
@@ -317,7 +339,37 @@ const TextEditor = ({ gestures }: { gestures: GestureFeatures }) => {
 
   return (
     <div className="h-screen flex">
-      <div className="flex-1 flex justify-center">
+      <div className="flex-1 flex flex-col items-center">
+        {!gestureUsed && <div className="w-[850px] mb-4 flex gap-2">
+          <button 
+            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+            onClick={handleBold}
+          >
+            <BoldIcon className="w-4 h-4" />
+            Bold
+          </button>
+          <button 
+            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+            onClick={handleComment}
+          >
+            <ChatBubbleLeftIcon className="w-4 h-4" />
+            Comment
+          </button>
+          <button 
+            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+            onClick={() => setShowChatGPTPopup(true)}
+          >
+            <CommandLineIcon className="w-4 h-4" />
+            ChatGPT
+          </button>
+          <button 
+            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+            onClick={handleDelete}
+          >
+            <TrashIcon className="w-4 h-4" />
+            Delete Word
+          </button>
+        </div> }
         <div className="w-[850px]">
           <ReactQuill 
             ref={quillRef} 

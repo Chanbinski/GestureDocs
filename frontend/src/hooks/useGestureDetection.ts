@@ -18,7 +18,8 @@ interface GestureThresholds {
 const useGestureDetection = (
   videoRef: React.RefObject<HTMLVideoElement>, 
   showMesh: Boolean,
-  thresholds: GestureThresholds
+  thresholds: GestureThresholds,
+  gestureUsed: Boolean
 ) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gesturesRef = useRef<Gestures>(DEFAULT_GESTURES);
@@ -31,9 +32,11 @@ const useGestureDetection = (
   }, [thresholds]);
 
   useEffect(() => {
-  let faceLandmarker: FaceLandmarker;
-  //let poseLandmarker: PoseLandmarker;
+    if (gestureUsed) {
 
+    let faceLandmarker: FaceLandmarker;
+    //let poseLandmarker: PoseLandmarker;
+    
     const initLandmarkers = async () => {
       const filesetResolver = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
@@ -163,8 +166,8 @@ const useGestureDetection = (
       
       const detect = async () => {
         try {
-          // Only process if video is playing and visible
-          if (video.paused || video.ended || !video.videoWidth) {
+          // Only process if video is playing, visible, and gesture detection is enabled
+          if (video.paused || video.ended || !video.videoWidth || !gestureUsed) {
             requestAnimationFrame(detect);
             return;
           }
@@ -204,10 +207,16 @@ const useGestureDetection = (
       detect();
     };
 
+    console.log("Initializing landmarkers");
     initLandmarkers();
-  }, [videoRef, showMesh]);
+  }
+  }, [videoRef, showMesh, gestureUsed]);
 
+  if (!gestureUsed) {
+    return [canvasRef, DEFAULT_GESTURES] as const;
+  } else {
   return [canvasRef, gesturesRef.current] as const;
+  }
 };
 
 export default useGestureDetection;
