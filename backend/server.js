@@ -10,6 +10,11 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
+// Add this new route
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
+
 // Initialize OpenAI API
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // Make sure this is set in your .env file
