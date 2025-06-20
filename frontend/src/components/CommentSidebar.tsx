@@ -39,6 +39,7 @@ const CommentSidebar = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const commentInputRef = React.useRef<HTMLTextAreaElement>(null);
+  const commentEditorRef = React.useRef<HTMLDivElement>(null);
 
   // Focus the textarea when showCommentInput becomes true
   useEffect(() => {
@@ -57,6 +58,21 @@ const CommentSidebar = ({
       }
     }
   }, [editingCommentId]);
+
+  // Handle clicks outside the comment editor
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showCommentInput && commentEditorRef.current && !commentEditorRef.current.contains(event.target as Node)) {
+        onUnselectComment();
+      }
+    };
+    if (showCommentInput) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCommentInput, onUnselectComment]); 
 
   return (
     <div className="w-64 h-screen overflow-y-auto fixed right-0 flex-none">
@@ -126,7 +142,7 @@ const CommentSidebar = ({
         ))}
         
         {showCommentInput && (
-          <div className="bg-white rounded-lg shadow-sm p-3">
+          <div ref={commentEditorRef} className="bg-white rounded-lg shadow-sm p-3">
             <textarea
               ref={commentInputRef}
               value={commentText}
