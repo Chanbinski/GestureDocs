@@ -79,7 +79,14 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
     const userMessage: Message = { role: 'user', content: input.trim() };
     setMessages(prev => [...prev, userMessage]);
     setCurrentResponse('');
-    setInput('');
+    
+    // Clear input after a short delay to ensure IME is done
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.value = '';
+      }
+      setInput('');
+    }, 10);
 
     try {
       const response = await fetch(`${API_URL}/api/chat`, {
