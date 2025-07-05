@@ -109,6 +109,9 @@ function App() {
                     onChange={(e) => {
                       setGestureUsed(e.target.checked)
                       setShowGestureDot(false)
+                      if (!e.target.checked) {
+                        setShowGestureModal(false);
+                      }
                     }}
                     className="sr-only peer"
                   />
@@ -217,11 +220,15 @@ function App() {
             className={`p-3 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors ${
               showSettings ? 'bg-gray-700' : ''
             }`}
-            onClick={() => setShowSettings(!showSettings)}
+            onClick={() => {
+              setShowGestureModal(true);
+              setShowSettings(false);
+            }}
           >
             <FiSettings className="w-6 h-6 text-white" />
           </button>
           
+          {/* Commenting out settings dropdown menu since we're showing gesture settings directly
           {showSettings && (
             <div className="absolute bottom-16 right-0 bg-white shadow-lg rounded-lg p-2 w-64">
               <button
@@ -245,7 +252,7 @@ function App() {
                 Gesture Settings
               </button>
             </div>
-          )}
+          )} */}
         </div>
       </div>
 
