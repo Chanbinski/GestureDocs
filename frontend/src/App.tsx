@@ -3,7 +3,7 @@ import TextEditor from './components/TextEditor';
 import useWebcam from './hooks/useWebcam'
 import useGestureDetection from './hooks/useGestureDetection';
 import './App.css'
-import { FiSettings, FiCode, FiCommand } from 'react-icons/fi'
+import { FiSettings, FiCommand } from 'react-icons/fi'
 import { TrashIcon } from '@heroicons/react/24/outline'
 
 interface GestureThresholds {
