@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface Comment {
-  id: string;
-  text: string;
-  range: {
-    index: number;
-    length: number;
-  };
-}
+import { Comment } from '../types/comment';
 
 interface CommentSidebarProps {
   comments: Comment[];

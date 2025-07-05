@@ -1,38 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
+
+import CommentSidebar from './CommentSidebar';
+import ChatGPTMiniTab from './ChatGPTMiniTab';
+
+import { Gestures } from '../types/gestures';
+import { Comment } from '../types/comment';
+
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import './TextEditor.css';
-import Quill from 'quill';
-import CommentSidebar from './CommentSidebar';
-import ChatGPTMiniTab from './ChatGPTMiniTab';
 import { BoldIcon, ChatBubbleLeftIcon, CommandLineIcon, TrashIcon } from '@heroicons/react/24/outline';
-
-// Register custom font sizes with Quill
-const Size = Quill.import('attributors/style/size');
-Size.whitelist = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '18pt', '24pt', '30pt', '36pt', '48pt', '60pt'];
-Quill.register(Size, true);
 
 const COMMENT_COLOR = '#fef9c3';
 const COMMENT_SELECTED_COLOR = '#ffd54f';
 
-interface GestureFeatures {
-  isHeadTilt: boolean;
-  isHeadShake: boolean;
-  isHeadTiltUp: boolean;
-  isHeadNod: boolean;
-}
-
-interface Comment {
-  id: string;
-  text: string;
-  range: {
-    index: number;
-    length: number;
-  };
-}
-
-const TextEditor = ({ gestures, gestureUsed }: { gestures: GestureFeatures, gestureUsed: boolean }) => {
-  const resultedGestures: GestureFeatures = {
+const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed: boolean }) => {
+  
+  const resultedGestures: Gestures = {
     isHeadTilt: gestures.isHeadTilt,
     isHeadShake: gestures.isHeadShake,
     isHeadTiltUp: gestures.isHeadTiltUp,
@@ -41,7 +25,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: GestureFeatures, gest
 
   const [value, setValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
-  const quillRef = useRef<any>(null); // Ref to ReactQuill instance
+  const quillRef = useRef<any>(null);
   const prevGesturesRef = useRef(resultedGestures);
 
   const [comments, setComments] = useState<Comment[]>([]);
@@ -50,32 +34,16 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: GestureFeatures, gest
   const [commentRange, setCommentRange] = useState<{index: number , length: number} | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
 
-  // Add state for the popup
   const [showChatGPTPopup, setShowChatGPTPopup] = useState(false);
 
   const highlight = (color: string, position: number, length: number | null) => {
     if (quillRef.current && length !== null) {
       const quill = quillRef.current.getEditor();
       quill.formatText(position, length, 'background', color);
+    } else {
+      console.log('No length provided.');
     }
   }
-
-  // Add toolbar configuration
-  const modules = {
-    toolbar: [
-      [{ 'size': Size.whitelist }],  // Use the registered sizes
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['clean']
-    ]
-  };
-  const formats = [
-    'size',
-    'bold', 'italic', 'underline', 'strike',
-    'color', 'background',
-    'list', 'bullet'
-  ];
 
   // Text Editor Style
   useEffect(() => {
@@ -340,7 +308,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: GestureFeatures, gest
   return (
     <div className="h-screen flex">
       <div className="flex-1 flex flex-col items-center">
-        {!gestureUsed && <div className="w-[850px] mb-4 flex gap-2">
+        {!gestureUsed && <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10 w-[850px] flex gap-2 ml-4">
           <button 
             className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
             onClick={handleBold}
@@ -370,13 +338,11 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: GestureFeatures, gest
             Delete Word
           </button>
         </div> }
-        <div className="w-[850px]">
+        <div className="w-[850px] mt-8">
           <ReactQuill 
             ref={quillRef} 
             value={value} 
             onChange={setValue}
-            modules={modules}
-            formats={formats}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />

@@ -12,4 +12,4 @@ export interface SidebarOption {
   title: React.ReactNode;
   content: React.ReactNode;
   isActive?: boolean;
-} 
+}
