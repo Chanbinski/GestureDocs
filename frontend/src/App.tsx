@@ -4,6 +4,7 @@ import useWebcam from './hooks/useWebcam'
 import useGestureDetection from './hooks/useGestureDetection';
 import './App.css'
 import { FiSettings, FiCode, FiCommand } from 'react-icons/fi'
+import { TrashIcon } from '@heroicons/react/24/outline'
 
 interface GestureThresholds {
   tilt: number;
@@ -12,18 +13,51 @@ interface GestureThresholds {
   tiltUp: number;
 }
 
+const STORAGE_KEY = 'document_data';
+
 function App() {
   const [showMesh, setShowMesh] = useState(false);
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  const [gestureUsed, setGestureUsed] = useState(true);
+  const [gestureUsed, setGestureUsed] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      return data.gestureUsed ?? true;
+    }
+    return true;
+  });
   const videoRef = useWebcam();
 
-  const [thresholds, setThresholds] = useState<GestureThresholds>({
-    tilt: 0.03,
-    shake: 5,
-    nod: 1.5,
-    tiltUp: 1.5
+  const [thresholds, setThresholds] = useState<GestureThresholds>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      return data.thresholds || {
+        tilt: 0.03,
+        shake: 5,
+        nod: 1.5,
+        tiltUp: 1.5
+      };
+    }
+    return {
+      tilt: 0.03,
+      shake: 5,
+      nod: 1.5,
+      tiltUp: 1.5
+    };
   });
+
+  // Save gesture settings whenever they change
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const data = saved ? JSON.parse(saved) : {};
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...data,
+      gestureUsed,
+      thresholds
+    }));
+  }, [gestureUsed, thresholds]);
 
   const [canvasRef, gestures] = useGestureDetection(videoRef, showMesh, thresholds, gestureUsed);
   const [showSettings, setShowSettings] = useState(false);
@@ -220,17 +254,14 @@ function App() {
             className={`p-3 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors ${
               showSettings ? 'bg-gray-700' : ''
             }`}
-            onClick={() => {
-              setShowGestureModal(true);
-              setShowSettings(false);
-            }}
+            onClick={() => setShowSettings(!showSettings)}
           >
             <FiSettings className="w-6 h-6 text-white" />
           </button>
           
-          {/* Commenting out settings dropdown menu since we're showing gesture settings directly
           {showSettings && (
             <div className="absolute bottom-16 right-0 bg-white shadow-lg rounded-lg p-2 w-64">
+              {/* Developer Settings button commented out
               <button
                 onClick={() => {
                   setShowDeveloperModal(true);
@@ -241,6 +272,7 @@ function App() {
                 <FiCode className="w-4 h-4 mr-2" />
                 Developer Settings
               </button>
+              */}
               <button
                 onClick={() => {
                   setShowGestureModal(true);
@@ -251,8 +283,21 @@ function App() {
                 <FiCommand className="w-4 h-4 mr-2" />
                 Gesture Settings
               </button>
+              <div className="border-t border-gray-200 my-1"></div>
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to reset the document? This cannot be undone.')) {
+                    localStorage.removeItem('document_data');
+                    window.location.reload();
+                  }
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
+              >
+                <TrashIcon className="w-4 h-4 mr-2" />
+                Reset Document
+              </button>
             </div>
-          )} */}
+          )} 
         </div>
       </div>
 
