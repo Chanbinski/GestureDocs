@@ -1,24 +1,45 @@
 import { useState, useRef, useEffect } from 'react';
-const API_URL = import.meta.env.VITE_API_URL;
+import { TrashIcon, ChevronDownIcon, ArrowUpIcon } from '@heroicons/react/24/outline';
 
+// Constants
+const API_URL = import.meta.env.VITE_API_URL;
+const STORAGE_KEY = 'chatgpt_history';
+
+// Types
 type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
 
+// Storage utilities
+const loadMessages = (): Message[] => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  return saved ? JSON.parse(saved) : [];
+};
+
+const saveMessages = (messages: Message[]) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+};
+
 const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
+  // State
   const [input, setInput] = useState<string>('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(loadMessages);
+  const [streaming, setStreaming] = useState(false);
+  const [currentResponse, setCurrentResponse] = useState('');
+
+  // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Effects
+  useEffect(() => {
+    saveMessages(messages);
+  }, [messages]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streaming]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -26,13 +47,24 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
     }
   }, []);
 
+  // Utility functions
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = '32px'; // Reset to initial height (h-8 = 32px)
+      textarea.style.height = '32px';
       const scrollHeight = textarea.scrollHeight;
-      textarea.style.height = `${Math.min(scrollHeight, 160)}px`; // Max 5 lines (160px)
+      textarea.style.height = `${Math.min(scrollHeight, 160)}px`;
     }
+  };
+
+  // Event handlers
+  const handleClearHistory = () => {
+    setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -41,12 +73,13 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || streaming) return;
 
-    const userMessage: Message = { role: 'user' as const, content: input.trim() };
+    setStreaming(true);
+    const userMessage: Message = { role: 'user', content: input.trim() };
     setMessages(prev => [...prev, userMessage]);
+    setCurrentResponse('');
     setInput('');
-    adjustTextareaHeight();
 
     try {
       const response = await fetch(`${API_URL}/api/chat`, {
@@ -57,82 +90,134 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
         }),
       });
 
-      const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+      if (!response.ok || !response.body) {
+        throw new Error('Network error or empty response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let assistantMessage = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(5);
+            if (data === '[DONE]') break;
+
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.error) {
+                throw new Error(parsed.error);
+              }
+              if (parsed.content) {
+                assistantMessage += parsed.content;
+                setCurrentResponse(assistantMessage);
+              }
+            } catch (e) {
+              console.error('Error parsing chunk:', e);
+            }
+          }
+        }
+      }
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
     } catch (error) {
       console.error('Error:', error);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Error processing request' }]);
+    } finally {
+      setStreaming(false);
+      setCurrentResponse('');
     }
   };
 
+  // Render message component
+  const MessageBubble = ({ message }: { message: Message }) => (
+    <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`max-w-xs p-2 rounded ${
+          message.role === 'user'
+            ? 'bg-blue-500 text-white'
+            : 'bg-gray-100 text-gray-700'
+        }`}
+      >
+        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+      </div>
+    </div>
+  );
+
+  // Render loading indicator
+  const LoadingIndicator = () => (
+    <div className="flex justify-start">
+      <div className="p-2">
+        <div className="w-1.5 h-1.5 bg-black rounded-full animate-blink"></div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="fixed bottom-4 left-4 w-64 bg-white rounded-lg shadow-sm p-3">
-      <div className="flex justify-end items-center mb-3">
+      {/* Header */}
+      <div className="flex justify-end items-center mb-3 gap-1">
+        <button 
+          onClick={handleClearHistory}
+          className="text-gray-400 hover:text-gray-600 p-1 rounded"
+          aria-label="Clear history"
+        >
+          <TrashIcon className="w-4 h-4 stroke-2" />
+        </button>
         <button 
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600"
           aria-label="Close"
         >
-          <svg 
-            className="w-4 h-4" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth="2" 
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+          <ChevronDownIcon className="w-4 h-4 stroke-2" />
         </button>
       </div>
 
+      {/* Messages Container */}
       <div className="h-80 overflow-y-auto space-y-3 mb-2">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-xs p-2 rounded ${
-                msg.role === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-            </div>
-          </div>
+          <MessageBubble key={idx} message={msg} />
         ))}
+        {streaming && (
+          currentResponse ? (
+            <MessageBubble message={{ role: 'assistant', content: currentResponse }} />
+          ) : (
+            <LoadingIndicator />
+          )
+        )}
         <div ref={messagesEndRef} />
       </div>
       
+      {/* Input Area */}
       <div className="mt-2 flex gap-2 items-center">
         <textarea
           ref={textareaRef}
           value={input}
           onChange={handleInputChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
           placeholder="Message ChatGPT..."
           className="flex-1 p-2 border rounded text-sm min-h-8 resize-none leading-tight"
           rows={1}
         />
         <button 
           onClick={handleSend}
-          className="text-blue-500 hover:text-blue-600 flex items-center"
+          disabled={streaming}
+          className={`text-blue-500 hover:text-blue-600 flex items-center ${streaming ? 'opacity-50 cursor-not-allowed' : ''}`}
           aria-label="Send message"
         >
-          <svg 
-            className="w-4 h-4" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth="2" 
-              d="M5 10l7-7m0 0l7 7m-7-7v18"
-            />
-          </svg>
+          <ArrowUpIcon className="w-4 h-4 stroke-2" />
         </button>
       </div>
     </div>
