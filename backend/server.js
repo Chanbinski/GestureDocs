@@ -28,15 +28,30 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Invalid request payload' });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    // Set headers for SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const stream = await openai.chat.completions.create({
+      model: 'gpt-4',
       messages: messages,
+      stream: true,
     });
 
-    res.json({ response: completion.choices[0].message.content });
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      if (content) {
+        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      }
+    }
+
+    res.write('data: [DONE]\n\n');
+    res.end();
   } catch (error) {
     console.error('Error with OpenAI API:', error.message);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.end();
   }
 });
 
