@@ -63,8 +63,10 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
 
   // Event handlers
   const handleClearHistory = () => {
-    setMessages([]);
-    localStorage.removeItem(STORAGE_KEY);
+    if (window.confirm('Are you sure you want to clear chat history? This cannot be undone.')) {
+      setMessages([]);
+      localStorage.removeItem(STORAGE_KEY);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
