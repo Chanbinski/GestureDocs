@@ -5,75 +5,83 @@ import './TextEditor.css';
 
 import CommentSidebar from './CommentSidebar';
 import ChatGPTMiniTab from './ChatGPTMiniTab';
+import { BoldIcon, ChatBubbleLeftIcon, CommandLineIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 import { Gestures } from '../types/gestures';
 import { Comment } from '../types/comment';
-import { BoldIcon, ChatBubbleLeftIcon, CommandLineIcon, TrashIcon } from '@heroicons/react/24/outline';
 
-// Constants
 const COMMENT_COLOR = '#fef9c3';
 const COMMENT_SELECTED_COLOR = '#ffd54f';
 const STORAGE_KEY = 'document_data';
 
 const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed: boolean }) => {
+  // Editor state
+  const [value, setValue] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved).content || '' : '';
+  });
+  const [isFocused, setIsFocused] = useState(false);
+  const quillRef = useRef<any>(null);
+
+  // Comment state
+  const [comments, setComments] = useState<Comment[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved).comments || [] : [];
+  });
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [commentRange, setCommentRange] = useState<{index: number, length: number} | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+
+  // UI state
+  const [showChatGPTPopup, setShowChatGPTPopup] = useState(false);
+
+  // Gesture tracking
   const resultedGestures: Gestures = {
     isHeadTilt: gestures.isHeadTilt,
     isHeadShake: gestures.isHeadShake,
     isHeadTiltUp: gestures.isHeadTiltUp,
     isHeadNod: gestures.isHeadNod,
   };
-
-  // State
-  const [value, setValue] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const data = JSON.parse(saved);
-      return data.content || '';
-    }
-    return '';
-  });
-
-  const [comments, setComments] = useState<Comment[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const data = JSON.parse(saved);
-      return data.comments || [];
-    }
-    return [];
-  });
-
-  const [isFocused, setIsFocused] = useState(false);
-  const [showCommentInput, setShowCommentInput] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [commentRange, setCommentRange] = useState<{index: number, length: number} | null>(null);
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [showChatGPTPopup, setShowChatGPTPopup] = useState(false);
-
-  // Refs
-  const quillRef = useRef<any>(null);
   const prevGesturesRef = useRef(resultedGestures);
 
-  // Utility Functions
+  // Text formatting helpers
   const highlight = (color: string, position: number, length: number | null) => {
     if (quillRef.current && length !== null) {
       const quill = quillRef.current.getEditor();
       quill.formatText(position, length, 'background', color);
-    } else {
-      console.log('No length provided.');
     }
-  }
+  };
 
-  // Editor Handlers
+  // Editor action handlers
   const handleBold = () => {
     const quill = quillRef.current.getEditor();
     const selection = quill.getSelection();
     if (selection.length > 0) {
       const format = quill.getFormat(selection);
-      const isBold = Boolean(format.bold);
-      quill.formatText(selection.index, selection.length, 'bold', !isBold);
+      quill.formatText(selection.index, selection.length, 'bold', !format.bold);
     }
-  }
+  };
 
+  const handleDelete = () => {
+    const quill = quillRef.current.getEditor();
+    const quillText = quill.getText();
+    const selection = quill.getSelection();
+    const cursorPosition = selection.index;
+    
+    let endOfWord = cursorPosition;
+    while (endOfWord > 0 && /\s/.test(quillText[endOfWord - 1])) endOfWord--;
+    
+    let startOfWord = endOfWord;
+    while (startOfWord > 0 && !/\s/.test(quillText[startOfWord - 1])) startOfWord--;
+    
+    if (endOfWord > startOfWord) {
+      quill.deleteText(startOfWord, endOfWord - startOfWord);
+      quill.setSelection(startOfWord, 0);
+    }
+  };
+
+  // Comment handlers
   const handleComment = () => {
     const quill = quillRef.current.getEditor();
     const selection = quill.getSelection();
@@ -83,35 +91,8 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
       quill.setSelection(null);
       setShowCommentInput(true);
     }
-  }
+  };
 
-  const handleDelete = () => {
-    const quill = quillRef.current.getEditor();
-    const quillText = quill.getText();
-    const selection = quill.getSelection();
-    const cursorPosition = selection.index;
-    
-    // Find the end of the closest word to the left
-    let endOfWord = cursorPosition;
-    while (endOfWord > 0 && /\s/.test(quillText[endOfWord - 1])) {
-      endOfWord--;
-    }
-    
-    // Find the start of this word
-    let startOfWord = endOfWord;
-    while (startOfWord > 0 && !/\s/.test(quillText[startOfWord - 1])) {
-      startOfWord--;
-    }
-    
-    // Delete the word if we found one
-    if (endOfWord > startOfWord) {
-      quill.deleteText(startOfWord, endOfWord - startOfWord);
-      // Set cursor position to where the word ended
-      quill.setSelection(startOfWord, 0);
-    }
-  }
-
-  // Comment Handlers
   const handleCommentClick = (position: number, length: number) => {
     comments.forEach(comment => {
       highlight(COMMENT_COLOR, comment.range.index, comment.range.length);
@@ -136,12 +117,10 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
       setCommentRange(null);
       setShowCommentInput(false);
 
-      // Reset cursor format
       if (quillRef.current) {
         const quill = quillRef.current.getEditor();
-        const cursorPosition = commentRange.index + commentRange.length;
-        quill.setSelection(cursorPosition, 0);  // Move cursor to end of comment
-        quill.format('background', false);  // Reset format only at cursor position
+        quill.setSelection(commentRange.index + commentRange.length, 0);
+        quill.format('background', false);
       }
     }
   };
@@ -151,7 +130,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     setCommentText('');
     setCommentRange(null);
     setShowCommentInput(false);
-  }
+  };
 
   const handleUpdateComment = (id: string, newText: string) => {
     setComments(comments.map(comment => {
@@ -160,7 +139,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
         return { ...comment, text: newText };
       }
       return comment;
-    }))
+    }));
     setEditingCommentId(null);
   };
 
@@ -183,8 +162,8 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     // Set default size when editor is initialized
     if (quillRef.current) {
       const editor = quillRef.current.getEditor();
-      editor.root.style.fontSize = '11pt';  // Set default size
-      editor.format('size', '11pt');  // Set default size for new text
+      editor.root.style.fontSize = '11pt';
+      editor.format('size', '11pt');
       
       const sizePickerLabel = document.querySelector('.ql-size .ql-picker-label');
       if (sizePickerLabel) {
@@ -194,9 +173,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
   }, []);
 
   useEffect(() => {
-    // Skip if gestures haven't changed
     if (JSON.stringify(prevGesturesRef.current) === JSON.stringify(resultedGestures)) return;
-    
     prevGesturesRef.current = resultedGestures;
 
     if (!quillRef.current || !isFocused) return;
@@ -205,25 +182,10 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     const selection = quill.getSelection();
 
     requestAnimationFrame(() => {
-      // Handle shrug gesture to open ChatGPT popup
-      if (resultedGestures.isHeadTiltUp) {
-        setShowChatGPTPopup(true);
-      }
-
-      // Handle tilt gesture for comments
-      if (resultedGestures.isHeadTilt) {
-        handleComment();
-      }
-
-      // Handle nod gesture
-      if (resultedGestures.isHeadNod) {
-        handleBold();
-      }
-
-      // Handle shake gesture
-      if (resultedGestures.isHeadShake && selection) {
-        handleDelete();
-      }
+      if (resultedGestures.isHeadTiltUp) setShowChatGPTPopup(true);
+      if (resultedGestures.isHeadTilt) handleComment();
+      if (resultedGestures.isHeadNod) handleBold();
+      if (resultedGestures.isHeadShake && selection) handleDelete();
     });
   }, [resultedGestures, isFocused]);
 
@@ -233,25 +195,27 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     const quill = quillRef.current.getEditor();
     
     const handleTextChange = (delta: any) => {
-      // Calculate the length change and position from the delta
       const changes = delta.ops.reduce((acc: {index: number, length: number}, op: any) => {
-        if (op.retain) {
-          acc.index += op.retain;
-        }
-        if (op.insert) {
-          acc.length += typeof op.insert === 'string' ? op.insert.length : 1;
-        }
-        if (op.delete) {
-          acc.length -= op.delete;
-        }
+        if (op.retain) acc.index += op.retain;
+        if (op.insert) acc.length += typeof op.insert === 'string' ? op.insert.length : 1;
+        if (op.delete) acc.length -= op.delete;
         return acc;
       }, { index: 0, length: 0 });
 
-      // Update all comment ranges that come after the change
+      console.log(changes);
+
       setComments(prevComments => 
         prevComments.map(comment => {
+          if (comment.range.index > changes.index && comment.range.index + comment.range.length < changes.index - changes.length) {
+            return {
+              ...comment,
+              range: {
+                index: comment.range.index,
+                length: 0
+              }
+            };
+          }
           if (comment.range.index > changes.index) {
-            // If comment is after the change, shift its position
             return {
               ...comment,
               range: {
@@ -261,7 +225,6 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
             };
           }
           if (comment.range.index + comment.range.length > changes.index) {
-            // If change is within the comment, adjust its length
             return {
               ...comment,
               range: {
@@ -275,19 +238,12 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
       );
 
       setComments(prevComments =>
-        prevComments.filter(comment => {
-          if (comment.range.length <= 0) {
-            return false;
-          }
-          return true;
-        }));
+        prevComments.filter(comment => comment.range.length > 0)
+      );
     };
 
     quill.on('text-change', handleTextChange);
-    
-    return () => {
-      quill.off('text-change', handleTextChange);
-    };
+    return () => quill.off('text-change', handleTextChange);
   }, []);
 
   useEffect(() => {
@@ -313,10 +269,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
       };
 
       quill.root.addEventListener('click', handleClick);
-      
-      return () => {
-        quill.root.removeEventListener('click', handleClick);
-      };
+      return () => quill.root.removeEventListener('click', handleClick);
     }
   }, [comments, editingCommentId]);
 
@@ -336,36 +289,38 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
           }
         }}
       >
-        {!gestureUsed && <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10 w-[850px] flex gap-2 ml-4">
-          <button 
-            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-            onClick={handleBold}
-          >
-            <BoldIcon className="w-4 h-4" />
-            Bold
-          </button>
-          <button 
-            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-            onClick={handleComment}
-          >
-            <ChatBubbleLeftIcon className="w-4 h-4" />
-            Comment
-          </button>
-          <button 
-            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-            onClick={() => setShowChatGPTPopup(true)}
-          >
-            <CommandLineIcon className="w-4 h-4" />
-            ChatGPT
-          </button>
-          <button 
-            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-            onClick={handleDelete}
-          >
-            <TrashIcon className="w-4 h-4" />
-            Delete Word
-          </button>
-        </div>}
+        {!gestureUsed && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10 w-[850px] flex gap-2 ml-4">
+            <button 
+              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+              onClick={handleBold}
+            >
+              <BoldIcon className="w-4 h-4" />
+              Bold
+            </button>
+            <button 
+              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+              onClick={handleComment}
+            >
+              <ChatBubbleLeftIcon className="w-4 h-4" />
+              Comment
+            </button>
+            <button 
+              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+              onClick={() => setShowChatGPTPopup(true)}
+            >
+              <CommandLineIcon className="w-4 h-4" />
+              ChatGPT
+            </button>
+            <button 
+              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+              onClick={handleDelete}
+            >
+              <TrashIcon className="w-4 h-4" />
+              Delete Word
+            </button>
+          </div>
+        )}
         <div className="w-[850px] mt-8">
           <ReactQuill 
             ref={quillRef} 
