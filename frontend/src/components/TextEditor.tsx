@@ -77,6 +77,24 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     }
   };
 
+  const scrollToPosition = (position: number, length: number) => {
+    if (quillRef.current) {
+      const quill = quillRef.current.getEditor();
+      quill.focus();
+      
+      quill.setSelection(position + length, 0);
+      
+      requestAnimationFrame(() => {
+        const [leaf] = quill.getLeaf(position);
+        const element = leaf.domNode.parentElement || leaf.domNode;
+        
+        if (element instanceof Element) {
+          element.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
+      });
+    }
+  }
+
   // Editor action handlers
   const handleBold = () => {
     const quill = quillRef.current.getEditor();
@@ -112,8 +130,6 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     if (selection.length > 0) {
       setCommentRange({index: selection.index, length: selection.length});
       highlight(COMMENT_SELECTED_COLOR, selection.index, selection.length);
-      const currentPosition = selection.index + selection.length;
-      quill.setSelection(currentPosition, 0);
       setShowCommentInput(true);
     }
   };
@@ -123,6 +139,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
       highlight(COMMENT_COLOR, comment.range.index, comment.range.length);
     });
     highlight(COMMENT_SELECTED_COLOR, position, length);
+    scrollToPosition(position, length);
   };
 
   const handleAddComment = (text: string) => {
@@ -144,7 +161,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
 
       if (quillRef.current) {
         const quill = quillRef.current.getEditor();
-        quill.setSelection(commentRange.index + commentRange.length, 0);
+        scrollToPosition(commentRange.index + commentRange.length, 0);
         quill.format('background', false);
       }
     }
