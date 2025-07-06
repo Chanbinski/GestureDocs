@@ -112,7 +112,8 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     if (selection.length > 0) {
       setCommentRange({index: selection.index, length: selection.length});
       highlight(COMMENT_SELECTED_COLOR, selection.index, selection.length);
-      quill.setSelection(null);
+      const currentPosition = selection.index + selection.length;
+      quill.setSelection(currentPosition, 0);
       setShowCommentInput(true);
     }
   };
