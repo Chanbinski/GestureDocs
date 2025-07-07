@@ -3,7 +3,7 @@ import TextEditor from './components/TextEditor';
 import useWebcam from './hooks/useWebcam'
 import useGestureDetection from './hooks/useGestureDetection';
 import './App.css'
-import { FiSettings, FiCommand } from 'react-icons/fi'
+import { FiSettings, FiCommand, FiCode } from 'react-icons/fi'
 import { TrashIcon } from '@heroicons/react/24/outline'
 
 interface GestureThresholds {
@@ -248,7 +248,7 @@ function App() {
       )}
 
       {/* Settings Menu */}
-      <div className="fixed bottom-5 right-5 z-40">
+      <div className="fixed bottom-5 right-5 z-[100]">
         <div className="relative">
           <button 
             className={`p-3 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors ${
@@ -261,7 +261,6 @@ function App() {
           
           {showSettings && (
             <div className="absolute bottom-16 right-0 bg-white shadow-lg rounded-lg p-2 w-64">
-              {/* Developer Settings button commented out
               <button
                 onClick={() => {
                   setShowDeveloperModal(true);
@@ -272,7 +271,6 @@ function App() {
                 <FiCode className="w-4 h-4 mr-2" />
                 Developer Settings
               </button>
-              */}
               <button
                 onClick={() => {
                   setShowGestureModal(true);
@@ -310,22 +308,21 @@ function App() {
         <div className="mb-14">
           <TextEditor gestures={gestures} gestureUsed={gestureUsed}/>
         </div>
-        <div className="fixed bottom-4 right-4 flex flex-col items-end gap-3">
-          <div className={`relative w-[320px] h-[240px] ${!isDeveloperMode && 'hidden'}`}>
-            <video ref={videoRef} className="absolute top-0 left-0 w-full h-full"/>
-            <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
-          </div>
-
-          {isDeveloperMode && (
-            <div className="flex flex-row items-center gap-2 absolute top-2 left-2">
-              <div 
-                onClick={() => setShowMesh(!showMesh)}
-                className={`text-center px-2 py-0.5 rounded text-xs cursor-pointer ${showMesh ? "bg-green-500 text-white" : "bg-gray-500 text-gray-300"}`}
-              >
-                {showMesh ? "Disable Mesh" : "Enable Mesh"}
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-[75]">
+          <div className={`relative w-[280px] h-[210px] ${!isDeveloperMode && 'hidden'} bg-black rounded-lg shadow-lg`}>
+            <video ref={videoRef} className="absolute top-0 left-0 w-full h-full rounded-lg"/>
+            <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none rounded-lg" />
+            {isDeveloperMode && (
+              <div className="absolute top-2 left-2 flex flex-row items-center gap-2">
+                <div 
+                  onClick={() => setShowMesh(!showMesh)}
+                  className={`text-center px-2 py-0.5 rounded text-xs cursor-pointer ${showMesh ? "bg-green-500 text-white" : "bg-gray-500 text-gray-300"}`}
+                >
+                  {showMesh ? "Disable Mesh" : "Enable Mesh"}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </>

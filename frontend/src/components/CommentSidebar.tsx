@@ -67,7 +67,7 @@ const CommentSidebar = ({
   }, [showCommentInput, onUnselectComment]); 
 
   return (
-    <div className="w-64 h-screen overflow-y-auto fixed right-0 flex-none">
+    <div className="w-64 h-screen overflow-y-auto fixed right-0 flex-none float">
       <div className="p-4">
         {comments.map(comment => (
           <div key={comment.id} className="mb-3 bg-white rounded-lg shadow-sm p-3">

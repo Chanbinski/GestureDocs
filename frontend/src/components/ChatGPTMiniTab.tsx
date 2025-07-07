@@ -170,7 +170,7 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
   );
 
   return (
-    <div className="fixed bottom-4 left-4 w-64 bg-white rounded-lg shadow-sm p-3">
+    <div className="fixed bottom-4 left-4 w-64 bg-white rounded-lg shadow-sm p-3 float">
       {/* Header */}
       <div className="flex justify-end items-center mb-3 gap-1">
         <button 
