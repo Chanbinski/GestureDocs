@@ -168,6 +168,11 @@ const useGestureDetection = (
         try {
           // Only process if video is playing, visible, and gesture detection is enabled
           if (video.paused || video.ended || !video.videoWidth || !gestureUsed) {
+            if (!gestureUsed) {
+              previousYaw.value = null;
+              lastYawDirection.value = null;
+              previousPitch.value = null;
+            }
             requestAnimationFrame(detect);
             return;
           }

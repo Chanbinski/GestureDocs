@@ -102,6 +102,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     if (selection.length > 0) {
       const format = quill.getFormat(selection);
       quill.formatText(selection.index, selection.length, 'bold', !format.bold);
+      quill.formatText(selection.index, selection.length, 'underline', !format.bold);
     }
   };
 
