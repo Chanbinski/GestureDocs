@@ -219,7 +219,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     if (JSON.stringify(prevGesturesRef.current) === JSON.stringify(resultedGestures)) return;
     prevGesturesRef.current = resultedGestures;
 
-    if (!quillRef.current || !isFocused) return;
+    if (!quillRef.current) return;
 
     const quill = quillRef.current.getEditor();
     const selection = quill.getSelection();
