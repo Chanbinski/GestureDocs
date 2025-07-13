@@ -66,16 +66,30 @@ function App() {
   const [showGestureDot, setShowGestureDot] = useState(false);
   const prevGesturesRef = useRef(gestures);
 
-  // Effect to show the dot when a gesture is detected
-  useEffect(() => {
-    if (JSON.stringify(prevGesturesRef.current) !== JSON.stringify(gestures)) {
-      setShowGestureDot(true);
-      const timer = setTimeout(() => {
-        setShowGestureDot(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [gestures]);
+    // Effect to show the dot when a gesture is detected
+    useEffect(() => {
+      const prev = prevGesturesRef.current;
+      const hasChanged = (
+        prev.isHeadTilt !== gestures.isHeadTilt ||
+        prev.isHeadShake !== gestures.isHeadShake ||
+        prev.isHeadNod !== gestures.isHeadNod ||
+        prev.isHeadTiltUp !== gestures.isHeadTiltUp
+      );
+      let timer: ReturnType<typeof setTimeout> | undefined;
+
+      if (hasChanged) {
+        setShowGestureDot(true);
+        console.log('Gesture detected');
+        timer = setTimeout(() => {
+          setShowGestureDot(false);
+        }, 1000);
+        prevGesturesRef.current = gestures;
+      }
+      
+      return () => {
+        if (timer) clearTimeout(timer);
+      };
+    }, [gestures]);
 
   return (
     <>
@@ -177,7 +191,7 @@ function App() {
                       className="w-full"
                     />
                     <div className="text-xs text-gray-500 text-center">
-                      Sensitivity: {thresholds.tilt.toFixed(3)}
+                      Sensitivity (lower = more sensitive): {thresholds.tilt.toFixed(3)}
                     </div>
                   </div>
                 </div>
@@ -197,7 +211,7 @@ function App() {
                       className="w-full"
                     />
                     <div className="text-xs text-gray-500 text-center">
-                      Sensitivity: {thresholds.shake.toFixed(1)}
+                      Sensitivity (lower = more sensitive): {thresholds.shake.toFixed(1)}
                     </div>
                   </div>
                 </div>
@@ -217,7 +231,7 @@ function App() {
                       className="w-full"
                     />
                     <div className="text-xs text-gray-500 text-center">
-                      Sensitivity: {thresholds.nod.toFixed(2)}
+                      Sensitivity (lower = more sensitive): {thresholds.nod.toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -237,7 +251,7 @@ function App() {
                       className="w-full"
                     />
                     <div className="text-xs text-gray-500 text-center">
-                      Sensitivity: {thresholds.tiltUp.toFixed(2)}
+                      Sensitivity (lower = more sensitive): {thresholds.tiltUp.toFixed(2)}
                     </div>
                   </div>
                 </div>
