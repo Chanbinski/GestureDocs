@@ -5,7 +5,7 @@ import './TextEditor.css';
 
 import CommentSidebar from './CommentSidebar';
 import ChatGPTMiniTab from './ChatGPTMiniTab';
-import { BoldIcon, ChatBubbleLeftIcon, CommandLineIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { StarIcon, ChatBubbleLeftIcon, CommandLineIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 import { Gestures } from '../types/gestures';
 import { Comment } from '../types/comment';
@@ -336,8 +336,8 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
               className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
               onClick={handleBold}
             >
-              <BoldIcon className="w-4 h-4" />
-              Bold
+              <StarIcon className="w-4 h-4" />
+              Bold & Italicize
             </button>
             <button 
               className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
