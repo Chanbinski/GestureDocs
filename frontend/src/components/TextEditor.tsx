@@ -177,8 +177,8 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
   };
 
   // Effects
+  // Handle default size for editor
   useEffect(() => {
-    // Set default size when editor is initialized
     if (quillRef.current) {
       const editor = quillRef.current.getEditor();
       editor.root.style.fontSize = '11pt';
@@ -191,6 +191,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     }
   }, []);
 
+  // Handle gesture detection
   useEffect(() => {
     if (JSON.stringify(prevGesturesRef.current) === JSON.stringify(resultedGestures)) return;
     prevGesturesRef.current = resultedGestures;
@@ -208,6 +209,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     });
   }, [resultedGestures, isFocused]);
 
+  // Handle comment
   useEffect(() => {
     if (!quillRef.current) return;
     
@@ -290,6 +292,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     }
   }, [comments, editingCommentId]);
 
+  // Handle local storage
   useEffect(() => {
     const data = { content: value, comments };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -307,35 +310,33 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
         }}
       >
         {!gestureUsed && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10 w-[850px] flex gap-2 ml-4">
-            <button 
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-              onClick={handleBold}
-            >
-              <StarIcon className="w-4 h-4" />
-              Bold & Italicize
-            </button>
-            <button 
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-              onClick={handleComment}
-            >
-              <ChatBubbleLeftIcon className="w-4 h-4" />
-              Comment
-            </button>
-            <button 
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-              onClick={() => setShowChatGPTPopup(true)}
-            >
-              <CommandLineIcon className="w-4 h-4" />
-              ChatGPT
-            </button>
-            <button 
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-              onClick={handleDelete}
-            >
-              <TrashIcon className="w-4 h-4" />
-              Delete Word
-            </button>
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="w-[840px] flex justify-end gap-2">
+              <button 
+                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+                onClick={handleBold}
+              >
+                <StarIcon className="w-5 h-5" />
+              </button>
+              <button 
+                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+                onClick={handleComment}
+              >
+                <ChatBubbleLeftIcon className="w-5 h-5" />
+              </button>
+              <button 
+                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+                onClick={() => setShowChatGPTPopup(true)}
+              >
+                <CommandLineIcon className="w-5 h-5" />
+              </button>
+              <button 
+                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+                onClick={handleDelete}
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
         <div className="w-[850px] mt-8">

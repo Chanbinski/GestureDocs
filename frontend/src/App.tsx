@@ -46,7 +46,6 @@ function App() {
   }, [gestureUsed, thresholds]);
 
   // Effect to show the dot when a gesture is detected
-  // TODO: Will come back after refining gesture detection
   useEffect(() => {
     const detected = gestures.isHeadTilt || gestures.isHeadShake || gestures.isHeadNod || gestures.isHeadTiltUp;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -127,10 +126,12 @@ function App() {
                     type="checkbox"
                     checked={gestureUsed}
                     onChange={(e) => {
-                      setGestureUsed(e.target.checked)
-                      setShowGestureDot(false)
+                      setGestureUsed(() => {
+                        const newValue = e.target.checked;
+                        return newValue;
+                      });
                       if (!e.target.checked) {
-                        setSettingOption('settings');
+                        setSettingOption('none');
                       }
                     }}
                     className="sr-only peer"
