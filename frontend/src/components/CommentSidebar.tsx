@@ -33,6 +33,49 @@ const CommentSidebar = ({
   const commentInputRef = React.useRef<HTMLTextAreaElement>(null);
   const commentEditorRef = React.useRef<HTMLDivElement>(null);
 
+  // Handle keyboard shortcut for adding comments
+  useEffect(() => {
+    let isMetaPressed = false;
+    let isMPressed = false;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey) {
+        isMetaPressed = true;
+      }
+      if (e.key.toLowerCase() === 'm') {
+        isMPressed = true;
+      }
+      
+      if (showCommentInput && 
+          commentText.trim() !== '' && 
+          isMetaPressed && 
+          isMPressed && 
+          e.key === 'Enter') {
+        e.preventDefault();
+        onAddComment(commentText);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) {
+        isMetaPressed = false;
+      }
+      if (e.key.toLowerCase() === 'm') {
+        isMPressed = false;
+      }
+    };
+
+    if (showCommentInput) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('keyup', handleKeyUp);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [showCommentInput, commentText, onAddComment]);
+
   // Focus the textarea when showCommentInput becomes true
   useEffect(() => {
     if (showCommentInput && commentInputRef.current) {
