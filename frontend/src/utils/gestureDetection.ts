@@ -104,8 +104,6 @@ export function detectGestures({
   prevPitch.value = pitchDeg;
   prevYaw.value = yawDeg;
 
-  
-
   return {
     isHeadTilt,
     isHeadShake,

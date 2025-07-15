@@ -48,22 +48,18 @@ function App() {
   // Effect to show the dot when a gesture is detected
   // TODO: Will come back after refining gesture detection
   useEffect(() => {
-    const prev = prevGesturesRef.current;
-    const hasChanged = (
-      prev.isHeadTilt !== gestures.isHeadTilt ||
-      prev.isHeadShake !== gestures.isHeadShake ||
-      prev.isHeadNod !== gestures.isHeadNod ||
-      prev.isHeadTiltUp !== gestures.isHeadTiltUp
-    );
+    const detected = gestures.isHeadTilt || gestures.isHeadShake || gestures.isHeadNod || gestures.isHeadTiltUp;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    if (hasChanged) {
+    if (detected) {
       setShowGestureDot(true);
       console.log('Gesture detected');
       timer = setTimeout(() => {
         setShowGestureDot(false);
       }, 1000);
       prevGesturesRef.current = gestures;
+    } else {
+      setShowGestureDot(false);
     }
     
     return () => {
