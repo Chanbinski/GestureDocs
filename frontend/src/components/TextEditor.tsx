@@ -35,7 +35,6 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
 
   // UI state
   const [showChatGPTPopup, setShowChatGPTPopup] = useState(false);
-  const [isCommandPressed, setIsCommandPressed] = useState(false);
 
   // Gesture tracking
   const resultedGestures: Gestures = {
@@ -45,29 +44,6 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     isHeadNod: gestures.isHeadNod,
   };
   const prevGesturesRef = useRef(resultedGestures);
-
-  // Track command/ctrl key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey) {
-        setIsCommandPressed(true);
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (!e.metaKey && !e.ctrlKey) {
-        setIsCommandPressed(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
 
   // Text formatting helpers
   const highlight = (color: string, position: number, length: number | null) => {
@@ -225,12 +201,12 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     const selection = quill.getSelection();
 
     requestAnimationFrame(() => {
-      if (resultedGestures.isHeadTiltUp && isCommandPressed) setShowChatGPTPopup(true);
-      if (resultedGestures.isHeadTilt) handleComment();
-      if (resultedGestures.isHeadNod) handleBold();
-      if (resultedGestures.isHeadShake && selection && isCommandPressed) handleDelete();
+      if (resultedGestures.isHeadTiltUp) setShowChatGPTPopup(true);
+      if (resultedGestures.isHeadTilt && selection.length > 0) handleComment();
+      if (resultedGestures.isHeadNod && selection.length > 0) handleBold();
+      if (resultedGestures.isHeadShake) handleDelete();
     });
-  }, [resultedGestures, isFocused, isCommandPressed]);
+  }, [resultedGestures, isFocused]);
 
   useEffect(() => {
     if (!quillRef.current) return;
