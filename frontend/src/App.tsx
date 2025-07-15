@@ -1,22 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import TextEditor from './components/TextEditor';
 import useWebcam from './hooks/useWebcam'
-import useGestureDetection from './hooks/useGestureDetection';
+import useGestureDetection, { GestureThresholds } from './hooks/useGestureDetection';
 import './App.css'
-import { FiSettings, FiCommand, FiCode } from 'react-icons/fi'
-import { TrashIcon } from '@heroicons/react/24/outline'
-
-interface GestureThresholds {
-  tilt: number;
-  shake: number;
-  nod: number;
-  tiltUp: number;
-}
+import { CogIcon, CodeBracketIcon, FaceSmileIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 const STORAGE_KEY = 'document_data';
 
 function App() {
-  const [showMesh, setShowMesh] = useState(false);
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
   const [gestureUsed, setGestureUsed] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -26,28 +17,23 @@ function App() {
     }
     return true;
   });
-  const videoRef = useWebcam();
-
   const [thresholds, setThresholds] = useState<GestureThresholds>(() => {
+    const defaultThresholds: GestureThresholds = { tilt: 0.03, shake: 5, nod: 1.5, tiltUp: 1.5 }
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const data = JSON.parse(saved);
-      return data.thresholds || {
-        tilt: 0.03,
-        shake: 5,
-        nod: 1.5,
-        tiltUp: 1.5
-      };
+      return data.thresholds || defaultThresholds;
     }
-    return {
-      tilt: 0.03,
-      shake: 5,
-      nod: 1.5,
-      tiltUp: 1.5
-    };
+    return defaultThresholds;
   });
+  const [settingOption, setSettingOption] = useState<'none' | 'settings' | 'gesture' | 'developer'>('none');
+  const [showGestureDot, setShowGestureDot] = useState(false);
+  
+  const videoRef = useWebcam();
+  const [canvasRef, gestures] = useGestureDetection(videoRef, thresholds, gestureUsed)
+  const prevGesturesRef = useRef(gestures);
 
-  // Save gesture settings whenever they change
+  // Save Gesture Settings (gestureUsed, thresholds)
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     const data = saved ? JSON.parse(saved) : {};
@@ -59,54 +45,46 @@ function App() {
     }));
   }, [gestureUsed, thresholds]);
 
-  const [canvasRef, gestures] = useGestureDetection(videoRef, showMesh, thresholds, gestureUsed);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showDeveloperModal, setShowDeveloperModal] = useState(false);
-  const [showGestureModal, setShowGestureModal] = useState(false);
-  const [showGestureDot, setShowGestureDot] = useState(false);
-  const prevGesturesRef = useRef(gestures);
+  // Effect to show the dot when a gesture is detected
+  // TODO: Will come back after refining gesture detection
+  useEffect(() => {
+    const prev = prevGesturesRef.current;
+    const hasChanged = (
+      prev.isHeadTilt !== gestures.isHeadTilt ||
+      prev.isHeadShake !== gestures.isHeadShake ||
+      prev.isHeadNod !== gestures.isHeadNod ||
+      prev.isHeadTiltUp !== gestures.isHeadTiltUp
+    );
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    // Effect to show the dot when a gesture is detected
-    useEffect(() => {
-      const prev = prevGesturesRef.current;
-      const hasChanged = (
-        prev.isHeadTilt !== gestures.isHeadTilt ||
-        prev.isHeadShake !== gestures.isHeadShake ||
-        prev.isHeadNod !== gestures.isHeadNod ||
-        prev.isHeadTiltUp !== gestures.isHeadTiltUp
-      );
-      let timer: ReturnType<typeof setTimeout> | undefined;
-
-      if (hasChanged) {
-        setShowGestureDot(true);
-        console.log('Gesture detected');
-        timer = setTimeout(() => {
-          setShowGestureDot(false);
-        }, 1000);
-        prevGesturesRef.current = gestures;
-      }
-      
-      return () => {
-        if (timer) clearTimeout(timer);
-      };
-    }, [gestures]);
+    if (hasChanged) {
+      setShowGestureDot(true);
+      console.log('Gesture detected');
+      timer = setTimeout(() => {
+        setShowGestureDot(false);
+      }, 1000);
+      prevGesturesRef.current = gestures;
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [gestures]);
 
   return (
     <>
       {/* Modal Overlays */}
-      {(showDeveloperModal || showGestureModal) && (
+      {(settingOption === 'developer' || settingOption === 'gesture') && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center">
-          {showDeveloperModal && (
+          {settingOption === 'developer' && (
             <div className="bg-white rounded-lg p-6 w-96 max-w-lg">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-gray-900">Developer Settings</h2>
                 <button 
-                  onClick={() => setShowDeveloperModal(false)}
+                  onClick={() => setSettingOption('none')}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <XMarkIcon className="w-5 h-5 stroke-2" />
                 </button>
               </div>
               <div className="space-y-4">
@@ -131,19 +109,17 @@ function App() {
             </div>
           )}
           
-          {showGestureModal && (
+          {settingOption === 'gesture' && (
             <div className="bg-white rounded-lg p-6 w-1/3 max-w-lg">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex flex-col gap-2">
                   <h2 className="text-lg font-bold text-gray-900">Gesture Settings</h2>
                 </div>
                 <button 
-                  onClick={() => setShowGestureModal(false)}
+                  onClick={() => setSettingOption('none')}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <XMarkIcon className="w-5 h-5 stroke-2" />
                 </button>
               </div>
 
@@ -158,7 +134,7 @@ function App() {
                       setGestureUsed(e.target.checked)
                       setShowGestureDot(false)
                       if (!e.target.checked) {
-                        setShowGestureModal(false);
+                        setSettingOption('settings');
                       }
                     }}
                     className="sr-only peer"
@@ -266,33 +242,27 @@ function App() {
         <div className="relative">
           <button 
             className={`p-3 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors ${
-              showSettings ? 'bg-gray-700' : ''
+              settingOption !== 'none' ? 'bg-gray-700' : ''
             }`}
-            onClick={() => setShowSettings(!showSettings)}
+            onClick={() => setSettingOption(settingOption === 'none' ? 'settings' : 'none')}
           >
-            <FiSettings className="w-6 h-6 text-white" />
+            <CogIcon className="w-6 h-6 text-white stroke-2" />
           </button>
           
-          {showSettings && (
+          {settingOption === 'settings' && (
             <div className="absolute bottom-16 right-0 bg-white shadow-lg rounded-lg p-2 w-64">
               <button
-                onClick={() => {
-                  setShowDeveloperModal(true);
-                  setShowSettings(false);
-                }}
+                onClick={() => setSettingOption('developer')}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
               >
-                <FiCode className="w-4 h-4 mr-2" />
+                <CodeBracketIcon className="w-4 h-4 mr-2 stroke-2" />
                 Developer Settings
               </button>
               <button
-                onClick={() => {
-                  setShowGestureModal(true);
-                  setShowSettings(false);
-                }}
+                onClick={() => setSettingOption('gesture')}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
               >
-                <FiCommand className="w-4 h-4 mr-2" />
+                <FaceSmileIcon className="w-4 h-4 mr-2 stroke-2" />
                 Gesture Settings
               </button>
               <div className="border-t border-gray-200 my-1"></div>
@@ -305,7 +275,7 @@ function App() {
                 }}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
               >
-                <TrashIcon className="w-4 h-4 mr-2" />
+                <TrashIcon className="w-4 h-4 mr-2 stroke-2" />
                 Reset Document
               </button>
             </div>
@@ -326,16 +296,6 @@ function App() {
           <div className={`relative w-[280px] h-[210px] ${!isDeveloperMode && 'hidden'} bg-black rounded-lg shadow-lg`}>
             <video ref={videoRef} className="absolute top-0 left-0 w-full h-full rounded-lg"/>
             <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none rounded-lg" />
-            {isDeveloperMode && (
-              <div className="absolute top-2 left-2 flex flex-row items-center gap-2">
-                <div 
-                  onClick={() => setShowMesh(!showMesh)}
-                  className={`text-center px-2 py-0.5 rounded text-xs cursor-pointer ${showMesh ? "bg-green-500 text-white" : "bg-gray-500 text-gray-300"}`}
-                >
-                  {showMesh ? "Disable Mesh" : "Enable Mesh"}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

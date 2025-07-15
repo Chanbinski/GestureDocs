@@ -2,13 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import {  
   FilesetResolver, 
   DrawingUtils, 
- FaceLandmarker, 
+  FaceLandmarker, 
   FaceLandmarkerResult,
 } from '@mediapipe/tasks-vision';
 import { Gestures, DEFAULT_GESTURES } from '../types/gestures';
 import { detectGestures } from '../utils/gestureDetection';
 
-interface GestureThresholds {
+export interface GestureThresholds {
   tilt: number;
   shake: number;
   nod: number;
@@ -17,7 +17,6 @@ interface GestureThresholds {
 
 const useGestureDetection = (
   videoRef: React.RefObject<HTMLVideoElement>, 
-  showMesh: Boolean,
   thresholds: GestureThresholds,
   gestureUsed: Boolean
 ) => {
@@ -25,17 +24,23 @@ const useGestureDetection = (
   const gesturesRef = useRef<Gestures>(DEFAULT_GESTURES);
   const [gestures, setGestures] = useState<Gestures>(gesturesRef.current);
   const thresholdsRef = useRef(thresholds);
+  const animationFrameRef = useRef<number>();
 
   useEffect(() => {
-    console.log(gestures);
     thresholdsRef.current = thresholds;
   }, [thresholds]);
 
   useEffect(() => {
-    if (gestureUsed) {
+    if (!gestureUsed) {
+      // Reset gestures when disabled
+      gesturesRef.current = DEFAULT_GESTURES;
+      setGestures(DEFAULT_GESTURES);
+      return;
+    }
 
+    console.log("Gesture detection started");
+    
     let faceLandmarker: FaceLandmarker;
-    //let poseLandmarker: PoseLandmarker;
     
     const initLandmarkers = async () => {
       const filesetResolver = await FilesetResolver.forVisionTasks(
@@ -51,21 +56,11 @@ const useGestureDetection = (
         runningMode: 'VIDEO',
         numFaces: 1,
       });
-
-      // poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
-      //   baseOptions: {
-      //     modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
-      //     delegate: "GPU"
-      //   },
-      //   runningMode: "VIDEO",
-      //   numPoses: 1
-      // });
-
       startDetection();
     };
 
     const startDetection = () => {
-        if (!videoRef.current || !canvasRef.current) return;
+      if (!videoRef.current || !canvasRef.current) return;
 
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -76,14 +71,18 @@ const useGestureDetection = (
       // Add check for video readiness
       if (!video.readyState || video.readyState < 2) {
         // Wait for video to be ready
-        video.addEventListener('loadeddata', () => startDetection());
+        const onLoadedData = () => {
+          startDetection();
+          video.removeEventListener('loadeddata', onLoadedData);
+        };
+        video.addEventListener('loadeddata', onLoadedData);
         return;
       }
 
       // Ensure valid video dimensions
       if (video.videoWidth === 0 || video.videoHeight === 0) {
         console.warn("Video dimensions not ready, retrying...");
-        requestAnimationFrame(startDetection);
+        animationFrameRef.current = requestAnimationFrame(startDetection);
         return;
       }
 
@@ -144,50 +143,33 @@ const useGestureDetection = (
         }
       };
 
-      // const showPoseLandmarks = (results: PoseLandmarkerResult) => {
-      //   if (results.landmarks) {
-      //     for (const landmarks of results.landmarks) {
-      //       drawingUtils.drawConnectors(
-      //         landmarks,
-      //         PoseLandmarker.POSE_CONNECTIONS,
-      //         { color: "#00FF00", lineWidth: 2}
-      //       );
-      //       drawingUtils.drawLandmarks(landmarks, {
-      //         color: "#FF0000",
-      //         lineWidth: 1
-      //       });
-      //     }
-      //   }
-      // };
-
       const previousYaw = { value: null as number | null };
       const lastYawDirection = { value: null as string | null };
       const previousPitch = { value: null as number | null };
       
       const detect = async () => {
         try {
-          // Only process if video is playing, visible, and gesture detection is enabled
-          if (video.paused || video.ended || !video.videoWidth || !gestureUsed) {
-            if (!gestureUsed) {
-              previousYaw.value = null;
-              lastYawDirection.value = null;
-              previousPitch.value = null;
-            }
-            requestAnimationFrame(detect);
+          // First check if gesture detection is disabled
+          if (!gestureUsed) {
+            previousYaw.value = null;
+            lastYawDirection.value = null;
+            previousPitch.value = null;
             return;
           }
+
+          // Then check other video conditions
+          if (video.paused || video.ended || !video.videoWidth) {
+            animationFrameRef.current = requestAnimationFrame(detect);
+            return;
+          }
+
           const faceResults = faceLandmarker.detectForVideo(video, performance.now());
-          // const poseResults = poseLandmarker.detectForVideo(video, performance.now());
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-          if (showMesh) {
-            if (faceResults.faceLandmarks) showLandmarks(faceResults);
-            // if (poseResults.landmarks) showPoseLandmarks(poseResults);
-          }
+          if (faceResults.faceLandmarks) showLandmarks(faceResults);
 
           if (faceResults.faceLandmarks && faceResults.faceLandmarks[0]) {
             const faceLandmarks = faceResults.faceLandmarks[0];
-            //const poseLandmarks = poseResults.landmarks[0];
             const newGestures = detectGestures({
               faceLandmarks,
               prevYaw: previousYaw,
@@ -202,10 +184,10 @@ const useGestureDetection = (
             }
           }
 
-          requestAnimationFrame(detect);
+          animationFrameRef.current = requestAnimationFrame(detect);
         } catch (error) {
           console.error('Error in detection:', error);
-          requestAnimationFrame(detect);
+          animationFrameRef.current = requestAnimationFrame(detect);
         }
       };
 
@@ -214,14 +196,22 @@ const useGestureDetection = (
 
     console.log("Initializing landmarkers");
     initLandmarkers();
-  }
-  }, [videoRef, showMesh, gestureUsed]);
 
-  if (!gestureUsed) {
-    return [canvasRef, DEFAULT_GESTURES] as const;
-  } else {
-  return [canvasRef, gesturesRef.current] as const;
-  }
+    // Cleanup function
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (faceLandmarker) {
+        faceLandmarker.close();
+      }
+      // Reset state
+      gesturesRef.current = DEFAULT_GESTURES;
+      setGestures(DEFAULT_GESTURES);
+    };
+  }, [gestureUsed, videoRef]);
+
+  return [canvasRef, gestures] as const;
 };
 
 export default useGestureDetection;
