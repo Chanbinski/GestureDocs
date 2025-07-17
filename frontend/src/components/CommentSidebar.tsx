@@ -36,20 +36,15 @@ const CommentSidebar = ({
   // Handle keyboard shortcut for adding comments
   useEffect(() => {
     let isMetaPressed = false;
-    let isMPressed = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) {
         isMetaPressed = true;
       }
-      if (e.key.toLowerCase() === 'm') {
-        isMPressed = true;
-      }
       
       if (showCommentInput && 
           commentText.trim() !== '' && 
           isMetaPressed && 
-          isMPressed && 
           e.key === 'Enter') {
         e.preventDefault();
         onAddComment(commentText);
@@ -59,9 +54,6 @@ const CommentSidebar = ({
     const handleKeyUp = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) {
         isMetaPressed = false;
-      }
-      if (e.key.toLowerCase() === 'm') {
-        isMPressed = false;
       }
     };
 
