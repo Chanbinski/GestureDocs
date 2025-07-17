@@ -18,7 +18,7 @@ function App() {
     return true;
   });
   const [thresholds, setThresholds] = useState<GestureThresholds>(() => {
-    const defaultThresholds: GestureThresholds = { tilt: 0.03, shake: 5, nod: 1.5, tiltUp: 1.5 }
+    const defaultThresholds: GestureThresholds = { tilt: 0.03, shake: 5, nod: 1.5, tiltUp: 1.9 }
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const data = JSON.parse(saved);
