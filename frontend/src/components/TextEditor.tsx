@@ -108,7 +108,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
       // Check if text already has both dark color and bold
       const currentColor = format.color;
       const currentBold = format.bold;
-      const isFormatted = currentColor === '#1e40af' && currentBold;
+      const isFormatted = currentColor === 'red' && currentBold;
       
       if (isFormatted) {
         // Remove both color and bold
@@ -116,7 +116,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
         quill.formatText(selection.index, selection.length, 'bold', false);
       } else {
         // Apply both dark blue color and bold
-        quill.formatText(selection.index, selection.length, 'color', '#1e40af');
+        quill.formatText(selection.index, selection.length, 'color', 'red');
         quill.formatText(selection.index, selection.length, 'bold', true);
       }
     }
