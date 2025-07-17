@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {  
   FilesetResolver, 
   DrawingUtils, 
-  FaceLandmarker, 
+ FaceLandmarker, 
   FaceLandmarkerResult,
 } from '@mediapipe/tasks-vision';
 import { Gestures, DEFAULT_GESTURES } from '../types/gestures';
@@ -39,7 +39,7 @@ const useGestureDetection = (
     }
 
     console.log("Gesture detection started");
-    
+
     let faceLandmarker: FaceLandmarker;
     
     const initLandmarkers = async () => {
@@ -60,7 +60,7 @@ const useGestureDetection = (
     };
 
     const startDetection = () => {
-      if (!videoRef.current || !canvasRef.current) return;
+        if (!videoRef.current || !canvasRef.current) return;
 
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -166,7 +166,7 @@ const useGestureDetection = (
           const faceResults = faceLandmarker.detectForVideo(video, performance.now());
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-          if (faceResults.faceLandmarks) showLandmarks(faceResults);
+            if (faceResults.faceLandmarks) showLandmarks(faceResults);
 
           if (faceResults.faceLandmarks && faceResults.faceLandmarks[0]) {
             const faceLandmarks = faceResults.faceLandmarks[0];

@@ -14,6 +14,34 @@ const COMMENT_COLOR = '#fef9c3';
 const COMMENT_SELECTED_COLOR = '#ffd54f';
 const STORAGE_KEY = 'document_data';
 
+// Keyboard bindings to block bold shortcut
+const keyboardBindings = {
+  // Block bold (Cmd/Ctrl + B)
+  bold: {
+    key: 'b',
+    shortKey: true,
+    handler: () => false
+  },
+  italic: {
+    key: 'i',
+    shortKey: true,
+    handler: () => false
+  },
+  underline: {
+    key: 'u',
+    shortKey: true,
+    handler: () => false
+  },
+};
+
+// Quill modules configuration
+const modules = {
+  keyboard: {
+    bindings: keyboardBindings
+  },
+  toolbar: false
+};
+
 const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed: boolean }) => {
   // Editor state
   const [value, setValue] = useState(() => {
@@ -77,8 +105,20 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     const selection = quill.getSelection();
     if (selection.length > 0) {
       const format = quill.getFormat(selection);
-      quill.formatText(selection.index, selection.length, 'bold', !format.bold);
-      quill.formatText(selection.index, selection.length, 'underline', !format.bold);
+      // Check if text already has both dark color and bold
+      const currentColor = format.color;
+      const currentBold = format.bold;
+      const isFormatted = currentColor === '#1e40af' && currentBold;
+      
+      if (isFormatted) {
+        // Remove both color and bold
+        quill.formatText(selection.index, selection.length, 'color', false);
+        quill.formatText(selection.index, selection.length, 'bold', false);
+      } else {
+        // Apply both dark blue color and bold
+        quill.formatText(selection.index, selection.length, 'color', '#1e40af');
+        quill.formatText(selection.index, selection.length, 'bold', true);
+      }
     }
   };
 
@@ -346,6 +386,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
             onChange={setValue}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
+            modules={modules}
           />
         </div>
       </div>

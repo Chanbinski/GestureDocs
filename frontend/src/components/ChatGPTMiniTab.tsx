@@ -145,6 +145,15 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
+  // Handle copy event to strip formatting
+  const handleCopy = (e: React.ClipboardEvent, content: string) => {
+    e.preventDefault();
+    const selection = window.getSelection();
+    const selectedText = selection?.toString() || content;
+    e.clipboardData.setData('text/plain', selectedText);
+    e.clipboardData.setData('text/html', selectedText);
+  };
+
   // Render message component
   const MessageBubble = ({ message }: { message: Message }) => (
     <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -154,8 +163,11 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
             ? 'bg-blue-500 text-white'
             : 'bg-gray-100 text-gray-700'
         }`}
+        onCopy={(e) => handleCopy(e, message.content)}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+        <p className="text-sm whitespace-pre-wrap break-words select-text">
+          {message.content}
+        </p>
       </div>
     </div>
   );
