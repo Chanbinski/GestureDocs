@@ -88,6 +88,7 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
         textareaRef.current.value = '';
       }
       setInput('');
+      adjustTextareaHeight();
     }, 10);
 
     try {
