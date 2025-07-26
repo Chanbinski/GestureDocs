@@ -4,6 +4,7 @@ import { TrashIcon, ChevronDownIcon, ArrowUpIcon } from '@heroicons/react/24/out
 // Constants
 const API_URL = import.meta.env.VITE_API_URL;
 const STORAGE_KEY = 'chatgpt_history';
+const AUTO_HIDE_DELAY = 30000; // 30 seconds
 
 // Types
 type Message = {
@@ -31,6 +32,7 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
   // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const autoHideTimeoutRef = useRef<number | null>(null);
 
   // Effects
   useEffect(() => {
@@ -47,6 +49,13 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
     }
   }, []);
 
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      clearAutoHideTimer();
+    };
+  }, []);
+
   // Utility functions
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,6 +67,21 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
       textarea.style.height = '32px';
       const scrollHeight = textarea.scrollHeight;
       textarea.style.height = `${Math.min(scrollHeight, 160)}px`;
+    }
+  };
+
+  // Auto-hide timer functions
+  const startAutoHideTimer = () => {
+    clearAutoHideTimer();
+    autoHideTimeoutRef.current = setTimeout(() => {
+      onClose();
+    }, AUTO_HIDE_DELAY);
+  };
+
+  const clearAutoHideTimer = () => {
+    if (autoHideTimeoutRef.current) {
+      clearTimeout(autoHideTimeoutRef.current);
+      autoHideTimeoutRef.current = null;
     }
   };
 
@@ -183,7 +207,12 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
   );
 
   return (
-    <div className="fixed bottom-4 left-4 w-64 bg-white rounded-lg shadow-sm p-3 float">
+    <div 
+      className="fixed bottom-4 left-4 w-64 bg-white rounded-lg shadow-sm p-3 float"
+      onFocus={clearAutoHideTimer}
+      onBlur={startAutoHideTimer}
+      tabIndex={-1}
+    >
       {/* Header */}
       <div className="flex justify-end items-center mb-3 gap-1">
         <button 
