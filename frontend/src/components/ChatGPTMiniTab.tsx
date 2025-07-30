@@ -249,6 +249,7 @@ const ChatGPTMiniTab = ({ onClose }: { onClose: () => void }) => {
       {/* Input Area */}
       <div className="mt-2 flex gap-2 items-center">
         <textarea
+          id="chatgpt-textarea"
           ref={textareaRef}
           value={input}
           onChange={handleInputChange}

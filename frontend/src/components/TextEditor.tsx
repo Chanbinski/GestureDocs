@@ -242,7 +242,14 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     const selection = quill.getSelection();
 
     requestAnimationFrame(() => {
-      if (resultedGestures.isHeadTiltUp) setShowChatGPTPopup(true);
+      if (resultedGestures.isHeadTiltUp) {
+        setShowChatGPTPopup(true);
+        // Focus the ChatGPT textarea
+        const textarea = document.getElementById('chatgpt-textarea') as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.focus();
+        }
+      }
       if (resultedGestures.isHeadTilt && selection.length > 0) handleComment();
       if (resultedGestures.isHeadNod && selection.length > 0) handleBold();
       if (resultedGestures.isHeadShake) handleDelete();
