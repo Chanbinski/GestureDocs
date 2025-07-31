@@ -5,7 +5,7 @@ import './TextEditor.css';
 
 import CommentSidebar from './CommentSidebar';
 import ChatGPTMiniTab from './ChatGPTMiniTab';
-import { StarIcon, ChatBubbleLeftIcon, CommandLineIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { StarIcon, ChatBubbleLeftIcon, CommandLineIcon, MinusIcon } from '@heroicons/react/24/outline';
 
 import { Gestures } from '../types/gestures';
 import { Comment } from '../types/comment';
@@ -122,7 +122,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     }
   };
 
-  const handleDelete = () => {
+  const handleStrikethrough = () => {
     const quill = quillRef.current.getEditor();
     const quillText = quill.getText();
     const selection = quill.getSelection();
@@ -135,7 +135,8 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     while (startOfWord > 0 && !/\s/.test(quillText[startOfWord - 1])) startOfWord--;
     
     if (endOfWord > startOfWord) {
-      quill.deleteText(startOfWord, endOfWord - startOfWord);
+      // Apply strikethrough to the word
+      quill.formatText(startOfWord, endOfWord - startOfWord, 'strike', true);
       quill.setSelection(startOfWord, 0);
     }
   };
@@ -252,7 +253,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
       }
       if (resultedGestures.isHeadTilt && selection.length > 0) handleComment();
       if (resultedGestures.isHeadNod && selection.length > 0) handleBold();
-      if (resultedGestures.isHeadShake) handleDelete();
+      if (resultedGestures.isHeadShake) handleStrikethrough();
     });
   }, [resultedGestures, isFocused]);
 
@@ -367,6 +368,12 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
               </button>
               <button 
                 className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
+                onClick={handleStrikethrough}
+              >
+                <MinusIcon className="w-5 h-5" />
+              </button>
+              <button 
+                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
                 onClick={handleComment}
               >
                 <ChatBubbleLeftIcon className="w-5 h-5" />
@@ -376,12 +383,6 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
                 onClick={() => setShowChatGPTPopup(true)}
               >
                 <CommandLineIcon className="w-5 h-5" />
-              </button>
-              <button 
-                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center gap-1.5 text-sm"
-                onClick={handleDelete}
-              >
-                <TrashIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
