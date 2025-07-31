@@ -73,3 +73,8 @@ body {
 .float {
   z-index: 50;
 }
+
+/* Fix for Quill clipboard scrolling issue */
+.ql-clipboard {
+  position: fixed;
+}

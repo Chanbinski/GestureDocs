@@ -395,6 +395,7 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             modules={modules}
+            scrollingContainer="html"
           />
         </div>
       </div>
