@@ -47,6 +47,13 @@ const CommentSidebar = ({
           isMetaPressed && 
           e.key === 'Enter') {
         e.preventDefault();
+        // Clear input after a short delay to ensure IME is done
+        setTimeout(() => {
+          if (commentInputRef.current) {
+            commentInputRef.current.value = '';
+          }
+          onCommentTextChange('');
+        }, 10);
         onAddComment(commentText);
       }
     };
