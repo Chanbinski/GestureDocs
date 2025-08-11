@@ -110,7 +110,7 @@ const CommentSidebar = ({
 
   return (
     <div className="w-64 h-screen overflow-y-auto fixed right-0 flex-none float">
-      <div className="p-4">
+    <div className="p-4 pb-24">
         {comments.map(comment => (
           <div key={comment.id} className="mb-3 bg-white rounded-lg shadow-sm p-3">
             {editingId === comment.id ? (

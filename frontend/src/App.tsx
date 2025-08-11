@@ -29,6 +29,12 @@ function App() {
   const [settingOption, setSettingOption] = useState<'none' | 'settings' | 'gesture' | 'developer'>('none');
   const [showGestureDot, setShowGestureDot] = useState(false);
   
+  // Slider ranges (used to invert UI so that higher slider value = more sensitive)
+  const tiltRange = { min: 0.01, max: 0.1 };
+  const shakeRange = { min: 1, max: 10 };
+  const nodRange = { min: 0.5, max: 3 };
+  const tiltUpRange = { min: 0.5, max: 3 };
+  
   const videoRef = useWebcam();
   const [canvasRef, gestures] = useGestureDetection(videoRef, thresholds, gestureUsed)
   const prevGesturesRef = useRef(gestures);
@@ -156,15 +162,19 @@ function App() {
                   <div className="mt-2">
                     <input
                       type="range"
-                      min="0.01"
-                      max="0.1"
-                      step="0.01"
-                      value={thresholds.tilt}
-                      onChange={(e) => setThresholds(prev => ({ ...prev, tilt: parseFloat(e.target.value) }))}
+                      min={tiltRange.min}
+                      max={tiltRange.max}
+                      step={0.01}
+                      value={(tiltRange.min + tiltRange.max - thresholds.tilt).toFixed(2)}
+                      onChange={(e) => {
+                        const ui = parseFloat(e.target.value);
+                        const inverted = tiltRange.min + tiltRange.max - ui;
+                        setThresholds(prev => ({ ...prev, tilt: inverted }));
+                      }}
                       className="w-full"
                     />
                     <div className="text-xs text-gray-500 text-center">
-                      Sensitivity (lower = more sensitive): {thresholds.tilt.toFixed(3)}
+                      Sensitivity (higher = more sensitive)
                     </div>
                   </div>
                 </div>
@@ -176,15 +186,19 @@ function App() {
                   <div className="mt-2">
                     <input
                       type="range"
-                      min="1"
-                      max="10"
-                      step="0.5"
-                      value={thresholds.shake}
-                      onChange={(e) => setThresholds(prev => ({ ...prev, shake: parseFloat(e.target.value) }))}
+                      min={shakeRange.min}
+                      max={shakeRange.max}
+                      step={0.5}
+                      value={(shakeRange.min + shakeRange.max - thresholds.shake).toFixed(1)}
+                      onChange={(e) => {
+                        const ui = parseFloat(e.target.value);
+                        const inverted = shakeRange.min + shakeRange.max - ui;
+                        setThresholds(prev => ({ ...prev, shake: inverted }));
+                      }}
                       className="w-full"
                     />
                     <div className="text-xs text-gray-500 text-center">
-                      Sensitivity (lower = more sensitive): {thresholds.shake.toFixed(1)}
+                      Sensitivity (higher = more sensitive)
                     </div>
                   </div>
                 </div>
@@ -196,15 +210,19 @@ function App() {
                   <div className="mt-2">
                     <input
                       type="range"
-                      min="0.5"
-                      max="3"
-                      step="0.1"
-                      value={thresholds.nod}
-                      onChange={(e) => setThresholds(prev => ({ ...prev, nod: parseFloat(e.target.value) }))}
+                      min={nodRange.min}
+                      max={nodRange.max}
+                      step={0.1}
+                      value={(nodRange.min + nodRange.max - thresholds.nod).toFixed(1)}
+                      onChange={(e) => {
+                        const ui = parseFloat(e.target.value);
+                        const inverted = nodRange.min + nodRange.max - ui;
+                        setThresholds(prev => ({ ...prev, nod: inverted }));
+                      }}
                       className="w-full"
                     />
                     <div className="text-xs text-gray-500 text-center">
-                      Sensitivity (lower = more sensitive): {thresholds.nod.toFixed(2)}
+                      Sensitivity (higher = more sensitive)
                     </div>
                   </div>
                 </div>
@@ -216,15 +234,19 @@ function App() {
                   <div className="mt-2">
                     <input
                       type="range"
-                      min="0.5"
-                      max="3"
-                      step="0.1"
-                      value={thresholds.tiltUp}
-                      onChange={(e) => setThresholds(prev => ({ ...prev, tiltUp: parseFloat(e.target.value) }))}
+                      min={tiltUpRange.min}
+                      max={tiltUpRange.max}
+                      step={0.1}
+                      value={(tiltUpRange.min + tiltUpRange.max - thresholds.tiltUp).toFixed(1)}
+                      onChange={(e) => {
+                        const ui = parseFloat(e.target.value);
+                        const inverted = tiltUpRange.min + tiltUpRange.max - ui;
+                        setThresholds(prev => ({ ...prev, tiltUp: inverted }));
+                      }}
                       className="w-full"
                     />
                     <div className="text-xs text-gray-500 text-center">
-                      Sensitivity (lower = more sensitive): {thresholds.tiltUp.toFixed(2)}
+                      Sensitivity (higher = more sensitive)
                     </div>
                   </div>
                 </div>
