@@ -350,12 +350,6 @@ const TextEditor = ({ gestures, gestureUsed }: { gestures: Gestures, gestureUsed
     <div className="h-screen flex">
       <div 
         className="flex-1 flex flex-col items-center"
-        onClick={() => {
-          if (quillRef.current) {
-            const quill = quillRef.current.getEditor();
-            quill.focus();
-          }
-        }}
       >
         {!gestureUsed && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10">
